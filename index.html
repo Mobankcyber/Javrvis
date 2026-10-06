@@ -1,0 +1,2628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>J.A.R.V.I.S. — Voice Command Interface · MK I</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='38' fill='none' stroke='%2322d3ee' stroke-width='8'/><circle cx='50' cy='50' r='16' fill='%23a5f3fc'/></svg>" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --cy:#22d3ee; --cy2:#67e8f9; --cy3:#0ea5e9; --ink:#020409;
+  }
+  html{ color-scheme: dark; }
+  body{ background:#010307; font-family:'Rajdhani',sans-serif; }
+  .font-display{ font-family:'Orbitron',sans-serif; }
+  .font-mono2{ font-family:'Share Tech Mono',monospace; }
+  ::selection{ background:rgba(34,211,238,.35); color:#eafcff; }
+
+  ::-webkit-scrollbar{ width:7px; height:7px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:rgba(14,116,164,.55); border-radius:99px; }
+  ::-webkit-scrollbar-thumb:hover{ background:rgba(34,211,238,.7); }
+
+  /* ---------- panels ---------- */
+  .panel{
+    position:relative;
+    background:linear-gradient(180deg, rgba(10,28,44,.72), rgba(4,12,21,.66));
+    border:1px solid rgba(56,189,248,.16);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 0 1px rgba(2,10,18,.6), 0 18px 50px -30px rgba(2,132,199,.35), inset 0 1px 0 rgba(148,233,255,.06);
+  }
+  .panel::before,.panel::after{
+    content:''; position:absolute; width:15px; height:15px; pointer-events:none;
+    border-color:rgba(96,220,255,.65); border-style:solid;
+  }
+  .panel::before{ top:-1px; left:-1px; border-width:2px 0 0 2px; }
+  .panel::after{ bottom:-1px; right:-1px; border-width:0 2px 2px 0; }
+
+  .sec-label{
+    font-family:'Orbitron',sans-serif; font-size:.6rem; letter-spacing:.38em;
+    color:rgba(125,211,252,.65); text-transform:uppercase;
+  }
+  .sec-rule{ height:1px; flex:1; background:linear-gradient(90deg, rgba(56,189,248,.4), transparent); }
+
+  .text-glow{ text-shadow:0 0 10px rgba(103,232,249,.65), 0 0 34px rgba(34,211,238,.35); }
+
+  /* ---------- reactor orb ---------- */
+  .ring{ position:absolute; border-radius:9999px; pointer-events:none; }
+  .ring-a{ inset:0; border:1px solid rgba(56,189,248,.16); }
+  .ring-a::after{
+    content:''; position:absolute; inset:-1px; border-radius:inherit;
+    background:conic-gradient(from 0deg, transparent 0 62%, rgba(34,211,238,.0) 68%, rgba(34,211,238,.85) 79%, rgba(240,254,255,.95) 82.5%, rgba(34,211,238,.85) 86%, transparent 93%);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+            mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+    animation:spin 9s linear infinite;
+  }
+  .ring-b{ inset:7%; border:1px dashed rgba(56,189,248,.3); animation:spin 36s linear infinite reverse; }
+  .ring-c{ inset:13%; }
+  .ring-c::before{
+    content:''; position:absolute; inset:0; border-radius:inherit;
+    background:repeating-conic-gradient(rgba(125,211,252,.5) 0deg 1.1deg, transparent 1.1deg 7deg);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 7px));
+            mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 7px));
+    animation:spin 50s linear infinite;
+  }
+  .ring-d{ inset:19%; border:1px solid rgba(56,189,248,.1); }
+  .ring-d::after{
+    content:''; position:absolute; inset:-1px; border-radius:inherit;
+    background:conic-gradient(from 180deg, transparent 0 40%, rgba(14,165,233,.7) 50%, transparent 60%);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+            mask:radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+    animation:spin 14s linear infinite reverse;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  #orbWrap[data-state="listening"] .ring-a::after{ animation-duration:2.6s; }
+  #orbWrap[data-state="processing"] .ring-a::after{ animation-duration:1.1s; }
+  #orbWrap[data-state="speaking"] .ring-d::after{ animation-duration:4s; }
+
+  .orb{
+    position:absolute; inset:28%; border-radius:9999px; display:grid; place-items:center;
+    cursor:pointer; outline:none;
+    background:radial-gradient(circle at 33% 27%, rgba(236,254,255,.96), rgba(103,232,249,.55) 24%, rgba(14,116,164,.42) 56%, rgba(3,22,36,.94) 100%);
+    border:1px solid rgba(165,243,252,.4);
+    box-shadow:0 0 44px rgba(34,211,238,.42), 0 0 130px rgba(34,211,238,.22),
+               inset 0 0 44px rgba(224,242,254,.32), inset 0 -20px 46px rgba(2,132,199,.5);
+    transition:transform .25s ease, box-shadow .4s ease;
+  }
+  .orb:hover{ transform:scale(1.03); }
+  .orb:active{ transform:scale(.97); }
+  .orb:focus-visible{ box-shadow:0 0 44px rgba(34,211,238,.6), 0 0 0 3px rgba(125,211,252,.5), inset 0 0 44px rgba(224,242,254,.32); }
+  .orb::before{
+    content:''; position:absolute; inset:14%; border-radius:inherit;
+    border:1px solid rgba(224,242,254,.35);
+    box-shadow:inset 0 0 22px rgba(224,242,254,.25);
+  }
+  .orb svg{ width:26%; height:26%; color:#ecf9ff; filter:drop-shadow(0 0 9px rgba(224,242,254,.95)); position:relative; }
+  @keyframes corePulse{
+    0%,100%{ box-shadow:0 0 44px rgba(34,211,238,.42), 0 0 130px rgba(34,211,238,.22), inset 0 0 44px rgba(224,242,254,.32), inset 0 -20px 46px rgba(2,132,199,.5); }
+    50%{ box-shadow:0 0 70px rgba(103,232,249,.75), 0 0 190px rgba(34,211,238,.4), inset 0 0 60px rgba(240,254,255,.5), inset 0 -20px 46px rgba(2,132,199,.6); }
+  }
+  #orbWrap[data-state="listening"] .orb,
+  #orbWrap[data-state="speaking"] .orb{ animation:corePulse 1.3s ease-in-out infinite; }
+  #orbWrap[data-state="processing"] .orb{ animation:corePulse .55s ease-in-out infinite; }
+
+  /* ---------- HUD bits ---------- */
+  .chip{
+    display:flex; align-items:center; gap:.45rem;
+    font-family:'Orbitron',sans-serif; font-size:.58rem; letter-spacing:.22em; text-transform:uppercase;
+    color:#9bd8f0; padding:.55rem .85rem; cursor:pointer;
+    background:linear-gradient(180deg, rgba(13,40,63,.65), rgba(5,16,28,.6));
+    border:1px solid rgba(56,189,248,.22); transition:all .22s ease;
+  }
+  .chip:hover{ border-color:rgba(103,232,249,.75); color:#eafcff; box-shadow:0 0 18px rgba(34,211,238,.28), inset 0 0 14px rgba(34,211,238,.1); transform:translateY(-2px); }
+  .chip:active{ transform:translateY(0); }
+  .chip svg{ width:13px; height:13px; }
+  .chip.flash{ animation:chipFlash .9s ease 3; }
+  @keyframes chipFlash{ 50%{ border-color:#e0f2fe; box-shadow:0 0 26px rgba(165,243,252,.6); color:#fff; } }
+
+  .sys-row{ display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.52rem 0; border-bottom:1px dashed rgba(56,189,248,.12); }
+  .sys-row:last-child{ border-bottom:0; }
+  .sys-key{ display:flex; align-items:center; gap:.55rem; font-size:.66rem; letter-spacing:.26em; color:#7cc7e6; text-transform:uppercase; font-family:'Orbitron',sans-serif; }
+  .sys-key svg{ width:13px; height:13px; color:rgba(103,232,249,.8); }
+  .sys-key.dim{ color:#1d6a8e; }
+  .sys-key.dim svg{ color:#1d6a8e; }
+  .sys-row.tight{ padding:.45rem 0; }
+  .sys-val{ font-family:'Share Tech Mono',monospace; font-size:.72rem; color:#d9f5ff; }
+
+  .dot{ width:8px; height:8px; border-radius:99px; display:inline-block; }
+  .dot.on{ background:#34d399; box-shadow:0 0 10px #34d399; }
+  .dot.live{ background:var(--cy); box-shadow:0 0 12px var(--cy); animation:dotPulse 1s ease infinite; }
+  .dot.off{ background:#f43f5e; box-shadow:0 0 10px #f43f5e; }
+  .dot.warn{ background:#f59e0b; box-shadow:0 0 10px #f59e0b; }
+  @keyframes dotPulse{ 50%{ opacity:.35; } }
+
+  .sw{ position:relative; width:38px; height:18px; border-radius:99px; background:rgba(8,35,55,.9); border:1px solid rgba(56,189,248,.3); cursor:pointer; transition:all .25s; flex:none; }
+  .sw::after{ content:''; position:absolute; top:1px; left:2px; width:14px; height:14px; border-radius:99px; background:#3f6f8d; transition:all .25s; }
+  .sw[aria-checked="true"]{ background:rgba(8,80,110,.9); border-color:rgba(103,232,249,.7); box-shadow:0 0 14px rgba(34,211,238,.35); }
+  .sw[aria-checked="true"]::after{ left:20px; background:#a5f3fc; box-shadow:0 0 9px #a5f3fc; }
+
+  .hud-input{
+    background:rgba(3,15,26,.85); border:1px solid rgba(56,189,248,.25); color:#e6faff;
+    font-family:'Share Tech Mono',monospace; outline:none; transition:all .25s;
+  }
+  .hud-input:focus{ border-color:rgba(103,232,249,.8); box-shadow:0 0 22px rgba(34,211,238,.22), inset 0 0 12px rgba(34,211,238,.07); }
+  .hud-input::placeholder{ color:rgba(125,166,196,.5); }
+
+  /* console */
+  .log-line{ display:flex; gap:.6rem; font-family:'Share Tech Mono',monospace; font-size:.72rem; line-height:1.5; animation:logIn .3s ease; }
+  @keyframes logIn{ from{ opacity:0; transform:translateY(5px);} }
+  .log-t{ color:rgba(94,144,178,.75); flex:none; }
+  .log-sys .log-m{ color:#6fd8f2; } .log-user .log-m{ color:#f0f9ff; } .log-jarvis .log-m{ color:#7ef0d4; }
+  .log-warn .log-m{ color:#fbbf24; } .log-err .log-m{ color:#fb7185; }
+  .log-tag{ flex:none; width:4.6rem; text-align:right; opacity:.85; }
+  .log-sys .log-tag{color:#38bdf8;} .log-user .log-tag{color:#e2e8f0;} .log-jarvis .log-tag{color:#34d399;}
+  .log-warn .log-tag{color:#f59e0b;} .log-err .log-tag{color:#f43f5e;}
+
+  /* scanlines + grid */
+  .scanlines{
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.024) 0 1px, transparent 1px 3px);
+    mix-blend-mode:overlay;
+  }
+  .vignette{ background:radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,4,10,.75) 100%); }
+  .gridbg{
+    background-image:linear-gradient(rgba(56,189,248,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,.05) 1px, transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask:radial-gradient(90% 80% at 50% 40%, #000 30%, transparent 100%);
+            mask:radial-gradient(90% 80% at 50% 40%, #000 30%, transparent 100%);
+  }
+  .sweep{ position:absolute; left:0; right:0; height:2px; pointer-events:none;
+    background:linear-gradient(90deg, transparent, rgba(103,232,249,.35), transparent);
+    animation:sweep 8s cubic-bezier(.6,.05,.4,.95) infinite; filter:blur(1px); }
+  @keyframes sweep{ 0%{ top:-2%; opacity:0 } 8%{opacity:1} 50%{ top:102%; opacity:.8 } 55%,100%{ opacity:0; top:102% } }
+
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(16px);} to{ opacity:1; transform:none;} }
+  .fade-up{ animation:fadeUp .7s cubic-bezier(.2,.7,.3,1) both; }
+  .d1{animation-delay:.08s}.d2{animation-delay:.18s}.d3{animation-delay:.3s}.d4{animation-delay:.42s}
+
+  .cursor-blink{ display:inline-block; width:7px; height:.95em; background:#a5f3fc; vertical-align:-2px; margin-left:2px; animation:blink 1s steps(1) infinite; box-shadow:0 0 8px #22d3ee; }
+  @keyframes blink{ 50%{ opacity:0 } }
+
+  .news-item{ display:block; padding:.55rem .6rem; border-left:2px solid transparent; transition:all .2s; }
+  .news-item:hover{ background:rgba(14,60,92,.35); border-left-color:var(--cy); }
+
+  .badge{ font-family:'Orbitron',sans-serif; font-size:.52rem; letter-spacing:.3em; padding:.2rem .45rem; border:1px solid rgba(56,189,248,.35); color:#8fddf8; }
+
+  /* module deck rows */
+  .row-item{ display:flex; align-items:center; gap:.6rem; padding:.42rem .55rem; border:1px solid rgba(56,189,248,.1); background:rgba(6,22,36,.4); transition:border-color .2s, background .2s; }
+  .row-item:hover{ border-color:rgba(103,232,249,.4); background:rgba(10,38,60,.5); }
+  .row-check{ width:15px; height:15px; flex:none; border:1px solid rgba(103,232,249,.5); display:grid; place-items:center; color:#04121f; cursor:pointer; background:transparent; transition:all .2s; }
+  .row-check.done{ background:var(--cy); border-color:var(--cy); box-shadow:0 0 10px rgba(34,211,238,.6); }
+  .row-check svg{ width:10px; height:10px; }
+  .row-name{ flex:1; font-family:'Share Tech Mono',monospace; font-size:.74rem; color:#d9f5ff; word-break:break-word; }
+  .row-name.done{ text-decoration:line-through; color:rgba(125,166,196,.45); }
+  .row-del{ color:rgba(125,166,196,.5); transition:color .2s; flex:none; display:grid; place-items:center; cursor:pointer; }
+  .row-del:hover{ color:#fb7185; }
+  .tfl-line{ display:flex; align-items:center; gap:.55rem; padding:.3rem .45rem; transition:background .2s; }
+  .tfl-line:hover{ background:rgba(10,38,60,.45); }
+  .tfl-bar{ width:4px; height:16px; border-radius:2px; flex:none; box-shadow:0 0 8px currentColor; }
+  .tfl-name{ flex:1; font-family:'Share Tech Mono',monospace; font-size:.7rem; color:#cfeefb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tfl-status{ font-family:'Orbitron',sans-serif; font-size:.5rem; letter-spacing:.18em; padding:.15rem .4rem; border:1px solid; text-transform:uppercase; white-space:nowrap; }
+
+  /* data tiles (crypto / fx) */
+  .dtile{ display:flex; align-items:center; gap:.6rem; padding:.4rem .55rem; border:1px solid rgba(56,189,248,.1); background:rgba(6,22,36,.4); transition:all .2s; }
+  .dtile:hover{ border-color:rgba(103,232,249,.4); background:rgba(10,38,60,.5); }
+  .dtile-ic{ width:22px; height:22px; flex:none; display:grid; place-items:center; border:1px solid; font-family:'Orbitron',sans-serif; font-size:8px; font-weight:800; }
+  .dtile-sym{ font-family:'Share Tech Mono',monospace; font-size:.68rem; color:#d9f5ff; width:4.2rem; flex:none; white-space:nowrap; overflow:hidden; }
+  .dtile-px{ margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:.72rem; color:#eafcff; white-space:nowrap; }
+  .dtile-chg{ font-family:'Orbitron',sans-serif; font-size:.52rem; letter-spacing:.08em; width:3.4rem; flex:none; text-align:right; white-space:nowrap; }
+  .dtile-chg.up{ color:#34d399; text-shadow:0 0 8px rgba(52,211,153,.5); }
+  .dtile-chg.dn{ color:#fb7185; text-shadow:0 0 8px rgba(251,113,133,.5); }
+  .pill{ font-family:'Orbitron',sans-serif; font-size:.48rem; letter-spacing:.2em; padding:.14rem .38rem; border:1px solid; flex:none; white-space:nowrap; }
+  .pill-hi{ color:#fb7185; border-color:rgba(251,113,133,.5); background:rgba(251,113,133,.08); }
+  .pill-md{ color:#fbbf24; border-color:rgba(251,191,36,.5); background:rgba(251,191,36,.08); }
+  .pill-lo{ color:#34d399; border-color:rgba(52,211,153,.5); background:rgba(52,211,153,.08); }
+  .count-pill{ font-family:'Orbitron',sans-serif; font-size:.48rem; letter-spacing:.12em; padding:.12rem .34rem; white-space:nowrap; }
+  .count-pill.ok{ color:#34d399; border:1px solid rgba(52,211,153,.4); }
+  .count-pill.warn{ color:#fbbf24; border:1px solid rgba(251,191,36,.4); }
+  .count-pill.due{ color:#fb7185; border:1px solid rgba(251,113,133,.4); }
+  .fxsub{ font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:.15em; color:rgba(125,166,196,.5); }
+  .auto-btn{ display:flex; align-items:center; gap:.5rem; width:100%; padding:.48rem .6rem; border:1px solid rgba(56,189,248,.16); background:rgba(6,22,36,.4); cursor:pointer; transition:all .2s; text-align:left; }
+  .auto-btn:hover{ border-color:rgba(103,232,249,.45); background:rgba(10,38,60,.55); }
+  .auto-btn svg{ width:13px; height:13px; color:rgba(103,232,249,.8); flex:none; }
+  .auto-btn span{ font-family:'Share Tech Mono',monospace; font-size:.66rem; letter-spacing:.12em; color:#c3e8f8; text-transform:uppercase; }
+
+  /* police bars */
+  .pgbar{ height:4px; background:rgba(8,50,75,.8); overflow:hidden; }
+  .pgfill{ height:100%; background:linear-gradient(90deg,#0ea5e9,#7dd3fc); box-shadow:0 0 8px rgba(34,211,238,.6); animation:pgIn .9s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes pgIn{ from{ width:0; } }
+  a.row-item{ text-decoration:none; cursor:pointer; }
+  a.row-item:hover .row-name{ color:#fff; }
+  .ukvi-stat{ border:1px solid rgba(56,189,248,.15); padding:.5rem .2rem; text-align:center; }
+
+  /* boot */
+  #bootLog div{ animation:fadeUp .25s ease both; }
+  @keyframes bootFlash{ 0%{ box-shadow:0 0 0 0 rgba(103,232,249,.9);} 100%{ box-shadow:0 0 120px 60px rgba(103,232,249,0);} }
+  .boot-flash{ animation:bootFlash 1s ease-out; }
+
+  @media (prefers-reduced-motion: reduce){
+    .ring-a::after,.ring-b,.ring-c::before,.ring-d::after,.sweep{ animation:none !important; }
+  }
+</style>
+</head>
+<body class="text-slate-200 overflow-x-hidden antialiased">
+
+<!-- ══════════════ BOOT SEQUENCE ══════════════ -->
+<div id="boot" class="fixed inset-0 z-[80] bg-[#010307] flex items-center justify-center">
+  <div class="w-[min(92vw,560px)] px-6">
+    <div class="flex items-center gap-4 mb-8">
+      <div class="w-12 h-12 rounded-full border border-cyan-400/50 grid place-items-center relative">
+        <div class="absolute inset-0 rounded-full border border-dashed border-cyan-300/40" style="animation:spin 6s linear infinite"></div>
+        <div class="w-4 h-4 rounded-full bg-cyan-200 shadow-[0_0_18px_#22d3ee]"></div>
+      </div>
+      <div>
+        <div class="font-display text-cyan-100 tracking-[.4em] text-sm font-bold">J.A.R.V.I.S.</div>
+        <div class="font-mono2 text-[10px] text-cyan-500/70 tracking-widest">STARK OS · BUILD 11.4 · MK I</div>
+      </div>
+    </div>
+    <div id="bootLog" class="font-mono2 text-[11px] leading-6 text-cyan-300/85 h-40 overflow-hidden"></div>
+    <div class="mt-6 h-[3px] bg-cyan-950/80 overflow-hidden">
+      <div id="bootBar" class="h-full bg-gradient-to-r from-cyan-500 to-cyan-200 shadow-[0_0_12px_#22d3ee] transition-all duration-500" style="width:0%"></div>
+    </div>
+    <div class="mt-6 flex items-center justify-between">
+      <span id="bootPct" class="font-mono2 text-[10px] text-cyan-500/70 tracking-widest">INITIALIZING 0%</span>
+      <button id="skipBoot" class="font-display text-[10px] tracking-[.3em] text-cyan-300/80 border border-cyan-400/30 px-4 py-2 hover:bg-cyan-400/10 hover:border-cyan-300/70 transition">ENTER INTERFACE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SHUTDOWN ══════════════ -->
+<div id="shutdown" class="fixed inset-0 z-[90] bg-black hidden items-center justify-center flex-col gap-6">
+  <div id="sdOrb" class="w-24 h-24 rounded-full bg-cyan-300/80 shadow-[0_0_80px_#22d3ee] transition-all duration-[1800ms]"></div>
+  <div class="font-display tracking-[.5em] text-cyan-200 text-sm">SYSTEMS POWERING DOWN</div>
+  <div class="font-mono2 text-[10px] text-cyan-600 tracking-widest">ALL PROTOCOLS ARCHIVED · MEMORY BANKS SEALED</div>
+  <button id="reboot" class="mt-6 font-display text-[10px] tracking-[.35em] text-cyan-200 border border-cyan-400/40 px-6 py-3 hover:bg-cyan-400/10 transition opacity-0 pointer-events-none">REBOOT CORE</button>
+</div>
+
+<!-- ══════════════ HOLOWORD DOCUMENT ══════════════ -->
+<div id="docOverlay" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/60 backdrop-blur-sm" data-no-cap>
+  <div class="panel w-[min(92vw,640px)] p-0 fade-up">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-cyan-400/15">
+      <div class="flex items-center gap-3">
+        <i data-lucide="file-text" class="w-4 h-4 text-cyan-300"></i>
+        <span class="font-display text-[11px] tracking-[.3em] text-cyan-100">HOLOWORD — DOCUMENT 1</span>
+        <span id="docSaved" class="badge text-emerald-300 border-emerald-400/40 hidden">SAVED</span>
+      </div>
+      <button id="docClose" class="text-cyan-400/70 hover:text-cyan-100 transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="px-6 py-2 flex items-center gap-3 border-b border-cyan-400/10 text-cyan-400/60">
+      <i data-lucide="bold" class="w-3.5 h-3.5"></i><i data-lucide="italic" class="w-3.5 h-3.5"></i><i data-lucide="underline" class="w-3.5 h-3.5"></i>
+      <span class="h-3 w-px bg-cyan-400/20 mx-1"></span>
+      <i data-lucide="align-left" class="w-3.5 h-3.5"></i><i data-lucide="align-center" class="w-3.5 h-3.5"></i><i data-lucide="align-right" class="w-3.5 h-3.5"></i>
+      <span class="ml-auto font-mono2 text-[10px] tracking-widest"><span id="docWords">0</span> WORDS</span>
+    </div>
+    <div class="p-6 min-h-[220px] font-mono2 text-[13px] leading-7 text-cyan-50/90" id="docBody"><span class="cursor-blink"></span></div>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="appWrap" class="relative min-h-screen opacity-0 transition-opacity duration-1000">
+  <canvas id="stars" class="absolute inset-0 pointer-events-none"></canvas>
+  <div class="absolute inset-0 gridbg pointer-events-none"></div>
+  <div class="absolute inset-0 vignette pointer-events-none"></div>
+  <div class="sweep"></div>
+  <div class="absolute inset-0 scanlines pointer-events-none z-30"></div>
+
+  <div class="relative z-10 max-w-[1560px] mx-auto flex flex-col min-h-screen">
+
+    <!-- HEADER -->
+    <header class="flex items-center justify-between gap-4 px-5 lg:px-8 h-[68px] border-b border-cyan-400/10 bg-[#020608]/70 backdrop-blur-md">
+      <div class="flex items-center gap-4">
+        <div class="relative w-10 h-10 grid place-items-center">
+          <div class="absolute inset-0 rounded-full border border-cyan-400/40"></div>
+          <div class="absolute inset-[3px] rounded-full border border-dashed border-cyan-300/30" style="animation:spin 10s linear infinite"></div>
+          <i data-lucide="aperture" class="w-4.5 h-4.5 text-cyan-300" width="18" height="18"></i>
+        </div>
+        <div>
+          <h1 class="font-display font-800 tracking-[.38em] text-cyan-50 text-sm lg:text-base font-bold text-glow">J.A.R.V.I.S.</h1>
+          <p class="font-mono2 text-[9px] tracking-[.28em] text-cyan-500/80">JUST A RATHER VERY INTELLIGENT SYSTEM · VOICE COMMAND MK I</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-5">
+        <div class="text-right hidden sm:block">
+          <div id="clock" class="font-display text-lg lg:text-xl text-cyan-100 tracking-[.2em] leading-none text-glow">--:--:--</div>
+          <div id="dateLine" class="font-mono2 text-[9px] tracking-[.25em] text-cyan-500/80 mt-1">—</div>
+        </div>
+        <div class="hidden md:flex items-center gap-2 border border-cyan-400/25 px-3 py-1.5">
+          <span class="dot on"></span><span class="font-display text-[9px] tracking-[.3em] text-cyan-200">ONLINE</span>
+        </div>
+        <button id="powerBtn" title="Shutdown protocol" class="w-9 h-9 grid place-items-center border border-cyan-400/25 text-cyan-300/80 hover:text-rose-300 hover:border-rose-400/50 transition">
+          <i data-lucide="power" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- COMMAND CONSOLE · top-centre -->
+    <div class="panel mx-5 lg:mx-6 mt-5 fade-up">
+      <div class="flex items-center justify-between px-5 py-2.5 border-b border-cyan-400/12">
+        <div class="flex items-center gap-3">
+          <i data-lucide="terminal" class="w-3.5 h-3.5 text-cyan-400/80"></i>
+          <span class="sec-label">Command Console</span>
+        </div>
+        <span id="logCount" class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">0 EVENTS</span>
+      </div>
+      <div id="consoleLog" class="h-[104px] overflow-y-auto px-5 py-3 space-y-1"></div>
+    </div>
+
+    <!-- MAIN -->
+    <main class="flex-1 grid grid-cols-1 xl:grid-cols-[280px_1fr_330px] gap-5 p-5 lg:p-6 lg:pt-4 items-stretch">
+
+      <!-- LEFT · SYSTEMS -->
+      <section class="panel p-5 fade-up d1 flex flex-col gap-5 order-2 xl:order-1">
+        <div class="flex items-center gap-3"><span class="sec-label">Systems</span><span class="sec-rule"></span><i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-400/60"></i></div>
+
+        <div>
+          <div class="sys-row">
+            <span class="sys-key"><i data-lucide="mic"></i>Microphone</span>
+            <span class="flex items-center gap-2"><span id="micDot" class="dot warn"></span><span id="micState" class="sys-val">IDLE</span></span>
+          </div>
+          <div class="sys-row">
+            <span class="sys-key"><i data-lucide="audio-waveform"></i>Voice Uplink</span>
+            <button id="micTest" class="chip" style="padding:.22rem .65rem"><i data-lucide="activity"></i>Mic Test</button>
+          </div>
+          <div class="sys-row">
+            <span class="sys-key"><i data-lucide="audio-lines"></i>Voice Synth</span>
+            <button id="voiceToggle" class="sw" role="switch" aria-checked="true" title="Toggle text-to-speech"></button>
+          </div>
+          <div class="sys-row">
+            <span class="sys-key"><i data-lucide="radio"></i>Wake Word</span>
+            <button id="wakeToggle" class="sw" role="switch" aria-checked="false" title="Arm &quot;Hey Jarvis&quot;"></button>
+          </div>
+          <div class="sys-row">
+            <span class="sys-key"><i data-lucide="wifi"></i>Network</span>
+            <span class="sys-val text-emerald-300">UPLINK OK</span>
+          </div>
+          <div class="sys-row">
+            <span class="sys-key"><i data-lucide="cpu"></i>Core Temp</span>
+            <span id="coreTemp" class="sys-val">36.5°C</span>
+          </div>
+          <div class="sys-row">
+            <span class="sys-key"><i data-lucide="gauge"></i>Uptime</span>
+            <span id="uptime" class="sys-val">00:00:00</span>
+          </div>
+        </div>
+
+        <!-- VOLUME -->
+        <div class="flex items-center gap-3 mt-1"><span class="sec-label">Output Volume</span><span class="sec-rule"></span></div>
+        <div class="flex items-center gap-4">
+          <div class="relative w-[104px] h-[104px] flex-none">
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(8,55,80,.9)" stroke-width="8"/>
+              <circle id="volArc" cx="60" cy="60" r="52" fill="none" stroke="url(#volGrad)" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="326.7" stroke-dashoffset="65.3" transform="rotate(-90 60 60)" style="filter:drop-shadow(0 0 6px rgba(34,211,238,.7)); transition:stroke-dashoffset .35s ease;"/>
+              <defs><linearGradient id="volGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#0ea5e9"/><stop offset="1" stop-color="#a5f3fc"/>
+              </linearGradient></defs>
+            </svg>
+            <div class="absolute inset-0 grid place-items-center text-center">
+              <div><div id="volVal" class="font-display text-lg text-cyan-100">80</div>
+              <div class="font-mono2 text-[8px] tracking-[.25em] text-cyan-500/80">GAIN %</div></div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <button data-vol="+10" class="chip justify-center"><i data-lucide="plus"></i>Gain</button>
+            <button data-vol="-10" class="chip justify-center"><i data-lucide="minus"></i>Gain</button>
+            <button id="muteBtn" class="chip justify-center"><i data-lucide="volume-2"></i>Audio</button>
+          </div>
+        </div>
+
+        <!-- ROADMAP -->
+        <div class="flex items-center gap-3 mt-1"><span class="sec-label">Roadmap Queue</span><span class="sec-rule"></span></div>
+        <div class="space-y-0 -mt-2">
+          <div class="sys-row tight"><span class="sys-key dim"><i data-lucide="mail"></i>Email Uplink</span><span class="badge">PHASE 2</span></div>
+          <div class="sys-row tight"><span class="sys-key dim"><i data-lucide="brain"></i>AI Core</span><span class="badge">PHASE 2</span></div>
+          <div class="sys-row tight"><span class="sys-key dim"><i data-lucide="shield"></i>Cyber Sentry</span><span class="badge">PHASE 2</span></div>
+          <div class="sys-row tight"><span class="sys-key dim"><i data-lucide="boxes"></i>Moss-B Bridge</span><span class="badge">PHASE 2</span></div>
+        </div>
+        <p class="font-mono2 text-[9px] text-cyan-600/80 tracking-widest leading-relaxed">HOTKEY [L] · TOGGLE LISTEN<br>HOTKEY [ENTER] · FOCUS CONSOLE</p>
+      </section>
+
+      <!-- CENTER · REACTOR -->
+      <section class="panel p-6 lg:p-8 flex flex-col items-center justify-center gap-7 fade-up d2 order-1 xl:order-2 min-h-[560px]">
+        <div id="orbWrap" data-state="idle" class="relative w-[280px] h-[280px] sm:w-[330px] sm:h-[330px]">
+          <canvas id="waveCanvas" class="absolute pointer-events-none" style="inset:-70px"></canvas>
+          <div class="ring ring-a"></div>
+          <div class="ring ring-b"></div>
+          <div class="ring ring-c"></div>
+          <div class="ring ring-d"></div>
+          <button id="orbBtn" class="orb" title="Click to speak"><i data-lucide="mic"></i></button>
+        </div>
+
+        <div class="text-center">
+          <div id="stateLabel" class="font-display font-bold tracking-[.5em] text-cyan-100 text-base sm:text-lg text-glow">STANDBY</div>
+          <div class="mt-3 h-6 font-mono2 text-[12px] text-cyan-300/90 tracking-wide">
+            <span id="transcript">Click the core, or arm the wake word, then speak.</span><span class="cursor-blink"></span>
+          </div>
+          <button id="briefBanner" class="mt-3 hidden chip !border-amber-300/50 !text-amber-100"><i data-lucide="bell-ring"></i><span id="briefBannerTxt"></span></button>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-2 max-w-[640px]">
+          <button class="chip !border-cyan-300/40 !text-cyan-100" data-cmd="morning briefing"><i data-lucide="sun-medium"></i>Brief Me</button>
+          <button class="chip" data-cmd="weather report"><i data-lucide="cloud-sun"></i>Weather</button>
+          <button class="chip" data-cmd="read the news"><i data-lucide="newspaper"></i>News</button>
+          <button class="chip" data-cmd="what time is it"><i data-lucide="clock"></i>Time</button>
+          <button class="chip" data-cmd="what is the date today"><i data-lucide="calendar"></i>Date</button>
+          <button class="chip" data-cmd="__search"><i data-lucide="search"></i>Search</button>
+          <button class="chip" data-cmd="open word"><i data-lucide="file-text"></i>Word</button>
+          <button class="chip" data-cmd="open claude"><i data-lucide="message-square"></i>Claude</button>
+          <button class="chip" data-cmd="take a screenshot"><i data-lucide="camera"></i>Capture</button>
+          <button class="chip" data-cmd="what is on my shopping list"><i data-lucide="shopping-cart"></i>Shop</button>
+          <button class="chip" data-cmd="list my appointments"><i data-lucide="calendar-plus"></i>Diary</button>
+          <button class="chip" data-cmd="london transport status"><i data-lucide="train-front"></i>Transit</button>
+          <button class="chip" data-cmd="crypto prices"><i data-lucide="bitcoin"></i>Crypto</button>
+          <button class="chip" data-cmd="exchange rates"><i data-lucide="arrow-right-left"></i>Rates</button>
+          <button class="chip" data-cmd="crime report"><i data-lucide="siren"></i>Crime</button>
+          <button class="chip" data-cmd="how long does a uk visa take"><i data-lucide="stamp"></i>Visa</button>
+          <button class="chip" data-cmd="set alert in 10 minutes"><i data-lucide="alarm-clock"></i>Alert</button>
+          <button class="chip" data-cmd="end of day report"><i data-lucide="moon"></i>EOD</button>
+          <button class="chip" data-cmd="help"><i data-lucide="circle-help"></i>Help</button>
+        </div>
+
+        <form id="cmdForm" class="w-full max-w-[520px] flex gap-2">
+          <div class="relative flex-1">
+            <i data-lucide="terminal" class="w-4 h-4 text-cyan-500/70 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input id="cmdInput" autocomplete="off" spellcheck="false" class="hud-input w-full h-11 pl-10 pr-3 text-[13px]" placeholder="Type a command — e.g. open youtube · search for arc reactors · volume 40" />
+          </div>
+          <button type="submit" class="chip justify-center px-5"><i data-lucide="send"></i>Run</button>
+        </form>
+      </section>
+
+      <!-- RIGHT · INTEL -->
+      <section class="flex flex-col gap-5 order-3">
+        <!-- WEATHER -->
+        <div class="panel p-5 fade-up d3">
+          <div class="flex items-center gap-3"><span class="sec-label">Weather Uplink</span><span class="sec-rule"></span>
+            <button id="wxRefresh" title="Refresh weather" class="text-cyan-400/70 hover:text-cyan-100 transition"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <div id="wxBody" class="mt-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span id="wxIconWrap" class="text-cyan-200"><i data-lucide="loader-circle" class="w-9 h-9 animate-spin"></i></span>
+                <div>
+                  <div id="wxTemp" class="font-display text-3xl text-cyan-50 leading-none text-glow">--°</div>
+                  <div id="wxCond" class="font-mono2 text-[10px] tracking-[.22em] text-cyan-400/90 mt-1 uppercase">LINKING…</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div id="wxCity" class="font-display text-[11px] tracking-[.25em] text-cyan-100 uppercase">—</div>
+                <div id="wxTime" class="font-mono2 text-[9px] text-cyan-500/80 mt-1">—</div>
+                <span id="wxTag" class="badge hidden mt-1 inline-block">CACHE</span>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mt-4 text-center">
+              <div class="border border-cyan-400/15 py-2"><i data-lucide="droplets" class="w-3.5 h-3.5 mx-auto text-cyan-400/80"></i><div id="wxHum" class="font-mono2 text-[11px] text-cyan-100 mt-1">--%</div><div class="font-mono2 text-[8px] tracking-[.2em] text-cyan-600">HUMIDITY</div></div>
+              <div class="border border-cyan-400/15 py-2"><i data-lucide="wind" class="w-3.5 h-3.5 mx-auto text-cyan-400/80"></i><div id="wxWind" class="font-mono2 text-[11px] text-cyan-100 mt-1">-- km/h</div><div class="font-mono2 text-[8px] tracking-[.2em] text-cyan-600">WIND</div></div>
+              <div class="border border-cyan-400/15 py-2"><i data-lucide="sunrise" class="w-3.5 h-3.5 mx-auto text-cyan-400/80"></i><div id="wxSun" class="font-mono2 text-[11px] text-cyan-100 mt-1">--:--</div><div class="font-mono2 text-[8px] tracking-[.2em] text-cyan-600">SUNRISE</div></div>
+            </div>
+            <input id="cityInput" class="hud-input w-full h-9 px-3 mt-4 text-[12px]" placeholder="Set city — press Enter (default: auto-detect)" />
+          </div>
+        </div>
+
+        <!-- NEWS -->
+        <div class="panel p-5 fade-up d4 flex-1 flex flex-col min-h-[260px]">
+          <div class="flex items-center gap-3"><span class="sec-label">Global News Feed</span><span class="sec-rule"></span>
+            <button id="newsRefresh" title="Refresh news" class="text-cyan-400/70 hover:text-cyan-100 transition"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <div id="newsList" class="mt-3 -mx-2 flex-1 overflow-y-auto max-h-[300px]">
+            <div class="font-mono2 text-[11px] text-cyan-500/80 px-2 py-4 animate-pulse">TUNING SATELLITE FEED…</div>
+          </div>
+          <div class="pt-3 mt-1 border-t border-cyan-400/10 flex items-center justify-between">
+            <span class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">SOURCE · NEWSAPI.ORG</span>
+            <span id="newsTag" class="badge hidden">CACHE</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODULES DECK · ROW 1 : MEMORY & COMMITMENTS -->
+      <div class="order-4 xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <!-- SHOPPING -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Shopping Inventory</span><span class="sec-rule"></span>
+            <span id="shopCount" class="badge">0 ITEMS</span>
+            <button id="shopClear" title="Clear list" class="text-cyan-400/70 hover:text-rose-300 transition"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <form id="shopForm" class="flex gap-2 mt-4">
+            <input id="shopInput" autocomplete="off" class="hud-input flex-1 h-9 px-3 text-[12px] min-w-0" placeholder="Add item — or say “add milk to shopping list”" />
+            <button type="submit" class="chip justify-center px-3"><i data-lucide="plus"></i></button>
+          </form>
+          <ul id="shopList" class="mt-3 space-y-1 overflow-y-auto max-h-[150px] pr-1"></ul>
+        </div>
+
+        <!-- APPOINTMENTS -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Diary Uplink</span><span class="sec-rule"></span>
+            <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-cyan-400/60"></i>
+          </div>
+          <form id="apptForm" class="flex gap-2 mt-4">
+            <input id="apptTitle" autocomplete="off" class="hud-input flex-1 h-9 px-3 text-[12px] min-w-0" placeholder="Appointment title…" />
+            <input id="apptWhen" type="datetime-local" class="hud-input h-9 px-2 text-[11px] w-[148px]" />
+            <button type="submit" class="chip justify-center px-3"><i data-lucide="plus"></i></button>
+          </form>
+          <ul id="apptList" class="mt-2 space-y-1 overflow-y-auto max-h-[118px] pr-1"></ul>
+        </div>
+
+        <!-- REMINDERS -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Memory · Reminders</span><span class="sec-rule"></span>
+            <span id="remCount" class="badge">0</span>
+          </div>
+          <form id="remForm" class="flex gap-2 mt-4">
+            <input id="remInput" autocomplete="off" class="hud-input flex-1 h-9 px-3 text-[12px] min-w-0" placeholder="Remind me to…" />
+            <button type="submit" class="chip justify-center px-3"><i data-lucide="bell-plus"></i></button>
+          </form>
+          <p class="font-mono2 text-[9px] tracking-[.15em] text-cyan-600/90 mt-2 leading-relaxed">VOICE · “REMIND ME TO PREPARE TOMORROW'S LECTURE”</p>
+          <ul id="remList" class="mt-2 space-y-1 overflow-y-auto max-h-[122px] pr-1"></ul>
+        </div>
+      </div>
+
+      <!-- MODULES DECK · ROW 2 : EXECUTION -->
+      <div class="order-5 xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <!-- TASKS -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Task Board</span><span class="sec-rule"></span>
+            <span id="taskCount" class="badge">0 OPEN</span>
+          </div>
+          <form id="taskForm" class="flex gap-2 mt-4">
+            <input id="taskInput" autocomplete="off" class="hud-input flex-1 h-9 px-3 text-[12px] min-w-0" placeholder="New task…"/>
+            <select id="taskPrio" class="hud-input h-9 px-1 text-[11px] w-[76px]">
+              <option value="high">HIGH</option><option value="med" selected>MED</option><option value="low">LOW</option>
+            </select>
+            <button type="submit" class="chip justify-center px-3"><i data-lucide="plus"></i></button>
+          </form>
+          <p class="font-mono2 text-[9px] tracking-[.15em] text-cyan-600/90 mt-2 leading-relaxed">VOICE · “ADD TASK GRADE MIDTERM PAPERS” · “WHAT NEEDS DOING?”</p>
+          <ul id="taskList" class="mt-2 space-y-1 overflow-y-auto max-h-[124px] pr-1"></ul>
+        </div>
+
+        <!-- DEADLINES -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Deadlines Radar</span><span class="sec-rule"></span>
+            <i data-lucide="radar" class="w-3.5 h-3.5 text-cyan-400/60"></i>
+          </div>
+          <form id="dlForm" class="flex gap-2 mt-4">
+            <input id="dlTitle" autocomplete="off" class="hud-input flex-1 h-9 px-3 text-[12px] min-w-0" placeholder="Deliverable…"/>
+            <input id="dlDate" type="date" class="hud-input h-9 px-2 text-[11px] w-[124px]" />
+            <button type="submit" class="chip justify-center px-3"><i data-lucide="plus"></i></button>
+          </form>
+          <p class="font-mono2 text-[9px] tracking-[.15em] text-cyan-600/90 mt-2 leading-relaxed">VOICE · “ADD DEADLINE GRANT PROPOSAL NEXT FRIDAY”</p>
+          <ul id="dlList" class="mt-2 space-y-1 overflow-y-auto max-h-[124px] pr-1"></ul>
+        </div>
+
+        <!-- LONDON TRANSPORT -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">London Transit · TfL</span><span class="sec-rule"></span>
+            <span id="tflTag" class="badge hidden">CACHE</span>
+            <button id="tflRefresh" title="Refresh transit" class="text-cyan-400/70 hover:text-cyan-100 transition"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <div id="tflList" class="mt-4 space-y-[3px] overflow-y-auto max-h-[140px] pr-1 flex-1">
+            <div class="font-mono2 text-[10px] text-cyan-600/80 px-1 py-3 tracking-widest animate-pulse">POLLING TFL NETWORK…</div>
+          </div>
+          <div class="pt-2 mt-2 border-t border-cyan-400/10 flex items-center justify-between">
+            <span class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">SOURCE · API.TFL.GOV.UK</span>
+            <span id="tflTime" class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODULES DECK · ROW 3 : MARKETS & AUTOMATION -->
+      <div class="order-6 xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <!-- CRYPTO -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Crypto Markets</span><span class="sec-rule"></span>
+            <span id="cryptoTag" class="badge hidden">CACHE</span>
+            <button id="cryptoRefresh" title="Refresh crypto" class="text-cyan-400/70 hover:text-cyan-100 transition"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <div id="cryptoList" class="mt-4 space-y-[3px]">
+            <div class="font-mono2 text-[10px] text-cyan-600/80 py-3 tracking-widest animate-pulse">SYNCING MARKET DATA…</div>
+          </div>
+          <div class="pt-2 mt-auto border-t border-cyan-400/10 flex items-center justify-between">
+            <span class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">SOURCE · COINGECKO</span>
+            <span id="cryptoTime" class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">—</span>
+          </div>
+        </div>
+
+        <!-- FX -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Exchange Desk · FX</span><span class="sec-rule"></span>
+            <span id="fxTag" class="badge hidden">CACHE</span>
+            <button id="fxRefresh" title="Refresh rates" class="text-cyan-400/70 hover:text-cyan-100 transition"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <div id="fxList" class="mt-4 space-y-[3px]">
+            <div class="font-mono2 text-[10px] text-cyan-600/80 py-3 tracking-widest animate-pulse">POLLING CURRENCY MARKETS…</div>
+          </div>
+          <p class="font-mono2 text-[9px] tracking-[.15em] text-cyan-600/90 mt-2 leading-relaxed">VOICE · “CONVERT 250 POUNDS TO NAIRA”</p>
+          <div class="pt-2 mt-auto border-t border-cyan-400/10 flex items-center justify-between">
+            <span class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">BASE · GBP · EXCHANGERATE-API</span>
+            <span id="fxTime" class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">—</span>
+          </div>
+        </div>
+
+        <!-- PC AUTOMATION -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">PC Automation</span><span class="sec-rule"></span>
+            <span class="badge">WEB · L1</span>
+          </div>
+          <div class="mt-4 flex flex-col gap-[7px]">
+            <button id="autoMedia" class="auto-btn"><i data-lucide="music"></i><span>Media · Play / Pause</span></button>
+            <button id="autoHosts" class="auto-btn"><i data-lucide="app-window"></i><span>Open Host Apps</span></button>
+            <button id="autoScanner" class="auto-btn"><i data-lucide="monitor-cog"></i><span>Site Scanner</span></button>
+            <button id="autoBattery" class="auto-btn"><i data-lucide="battery-charging"></i><span>Battery Check</span></button>
+            <button id="autoClip" class="auto-btn"><i data-lucide="clipboard-paste"></i><span>Clipboard · Paste</span></button>
+            <button id="autoPing" class="auto-btn"><i data-lucide="gauge"></i><span>Network Latency</span></button>
+          </div>
+          <p class="font-mono2 text-[9px] tracking-[.15em] text-cyan-600/90 mt-3 leading-relaxed">FULL OS AUTOMATION (FILES · SHELL · MOUSE) BINDS IN THE PYTHON DESKTOP TIER — L2</p>
+        </div>
+      </div>
+
+      <!-- MODULES DECK · ROW 4 : CIVIC SERVICES -->
+      <div class="order-7 xl:col-span-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.05fr_1.05fr_.9fr] gap-5">
+
+        <!-- LOCAL SENTRY · data.police.uk -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Local Sentry · Street Crime</span><span class="sec-rule"></span>
+            <span id="policeTag" class="badge hidden">CACHE</span>
+            <button id="policeRefresh" title="Refresh crime data" class="text-cyan-400/70 hover:text-cyan-100 transition"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <div class="mt-4 flex items-end justify-between gap-3">
+            <div>
+              <div id="policeTotal" class="font-display text-4xl text-cyan-50 leading-none text-glow">—</div>
+              <div class="font-mono2 text-[9px] tracking-[.25em] text-cyan-500/90 mt-1.5">RECORDED STREET INCIDENTS</div>
+            </div>
+            <div class="text-right">
+              <div id="policeArea" class="font-display text-[11px] tracking-[.2em] text-cyan-100">SCANNING…</div>
+              <div id="policeMonth" class="font-mono2 text-[9px] text-cyan-500/90 mt-1.5">—</div>
+              <div class="font-mono2 text-[8px] text-cyan-600/80 mt-1 tracking-widest">RADIUS ≈ 1 KM</div>
+            </div>
+          </div>
+          <div id="policeList" class="mt-4 flex-1">
+            <div class="font-mono2 text-[10px] text-cyan-600/80 py-3 tracking-widest animate-pulse">ANALYSING INCIDENT PATTERNS…</div>
+          </div>
+          <div class="pt-2 mt-2 border-t border-cyan-400/10 flex items-center justify-between">
+            <span class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">SOURCE · DATA.POLICE.UK</span>
+            <span id="policeTime" class="font-mono2 text-[9px] tracking-[.2em] text-cyan-600">—</span>
+          </div>
+        </div>
+
+        <!-- UK VISAS & IMMIGRATION -->
+        <div class="panel p-5 fade-up d4 flex flex-col">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">UK Visas &amp; Immigration</span><span class="sec-rule"></span>
+            <span class="badge">GOV.UK</span>
+            <i data-lucide="stamp" class="w-3.5 h-3.5 text-cyan-400/60"></i>
+          </div>
+          <div class="grid grid-cols-4 gap-2 mt-4">
+            <div class="ukvi-stat"><div class="font-display text-sm text-cyan-50">3 wks</div><div class="font-mono2 text-[7.5px] tracking-[.1em] text-cyan-600 mt-1">OUT · WORK/STUDY/VISIT</div></div>
+            <div class="ukvi-stat"><div class="font-display text-sm text-cyan-50">12 wks</div><div class="font-mono2 text-[7.5px] tracking-[.1em] text-cyan-600 mt-1">OUT · FAMILY</div></div>
+            <div class="ukvi-stat"><div class="font-display text-sm text-amber-200">8 wks</div><div class="font-mono2 text-[7.5px] tracking-[.1em] text-cyan-600 mt-1">INSIDE · MOST ROUTES</div></div>
+            <div class="ukvi-stat"><div class="font-display text-sm text-rose-200">6 mo</div><div class="font-mono2 text-[7.5px] tracking-[.1em] text-cyan-600 mt-1">SETTLEMENT (ILR)</div></div>
+          </div>
+          <div class="mt-3 space-y-1 flex-1">
+            <a class="row-item" href="https://www.gov.uk/view-prove-immigration-status" target="_blank" rel="noopener"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-cyan-400/80 flex-none"></i><span class="row-name">View &amp; prove your status — get a share code</span><i data-lucide="external-link" class="w-3 h-3 text-cyan-600 flex-none"></i></a>
+            <a class="row-item" href="https://www.gov.uk/get-access-evisa" target="_blank" rel="noopener"><i data-lucide="badge-check" class="w-3.5 h-3.5 text-cyan-400/80 flex-none"></i><span class="row-name">Get access to your eVisa (UKVI account)</span><i data-lucide="external-link" class="w-3 h-3 text-cyan-600 flex-none"></i></a>
+            <a class="row-item" href="https://www.gov.uk/apply-uk-visa" target="_blank" rel="noopener"><i data-lucide="file-input" class="w-3.5 h-3.5 text-cyan-400/80 flex-none"></i><span class="row-name">Apply for a UK visa</span><i data-lucide="external-link" class="w-3 h-3 text-cyan-600 flex-none"></i></a>
+            <a class="row-item" href="https://www.gov.uk/guidance/visa-decision-waiting-times-applications-outside-the-uk" target="_blank" rel="noopener"><i data-lucide="hourglass" class="w-3.5 h-3.5 text-cyan-400/80 flex-none"></i><span class="row-name">Visa decision waiting times</span><i data-lucide="external-link" class="w-3 h-3 text-cyan-600 flex-none"></i></a>
+            <a class="row-item" href="https://www.gov.uk/contact-ukvi-inside-outside-uk" target="_blank" rel="noopener"><i data-lucide="phone-call" class="w-3.5 h-3.5 text-cyan-400/80 flex-none"></i><span class="row-name">Contact UK Visas &amp; Immigration</span><i data-lucide="external-link" class="w-3 h-3 text-cyan-600 flex-none"></i></a>
+          </div>
+          <p class="font-mono2 text-[9px] tracking-[.12em] text-cyan-600/90 mt-3 leading-relaxed">GUIDANCE HUB ONLY — JARVIS CANNOT VIEW YOUR CASE FILE; UKVI ACCOUNTS REQUIRE SIGN-IN. PRIORITY: 5 DAYS / £500 · SUPER-PRIORITY: NEXT DAY / £1,000</p>
+        </div>
+
+        <!-- ALERT MATRIX -->
+        <div class="panel p-5 fade-up d4 flex flex-col md:col-span-2 xl:col-span-1">
+          <div class="flex items-center gap-3">
+            <span class="sec-label">Alert Matrix</span><span class="sec-rule"></span>
+            <span id="alertCount" class="badge">0 ARMED</span>
+            <i data-lucide="alarm-clock" class="w-3.5 h-3.5 text-cyan-400/60"></i>
+          </div>
+          <form id="alertForm" class="flex gap-2 mt-4">
+            <input id="alertTime" autocomplete="off" class="hud-input flex-1 h-9 px-3 text-[12px] min-w-0" placeholder="In 10 min — or 18:30" />
+            <input id="alertLabelIn" autocomplete="off" class="hud-input h-9 px-3 text-[12px] w-[118px]" placeholder="Label (opt.)" />
+            <button type="submit" class="chip justify-center px-3"><i data-lucide="plus"></i></button>
+          </form>
+          <p class="font-mono2 text-[9px] tracking-[.15em] text-cyan-600/90 mt-2 leading-relaxed">VOICE · “SET AN ALARM FOR 7:30 AM” · “SET ALERT IN 10 MINUTES TO STRETCH”</p>
+          <ul id="alertList" class="mt-2 space-y-1 overflow-y-auto max-h-[148px] pr-1 flex-1"></ul>
+        </div>
+      </div>
+    </main>
+
+    <footer class="mx-5 lg:mx-6 mb-5 lg:mb-6 flex items-center justify-between px-2">
+      <span class="font-mono2 text-[9px] tracking-[.3em] text-cyan-700/80">J.A.R.V.I.S. MK I · VOICE COMMAND CORE</span>
+      <span class="font-mono2 text-[9px] tracking-[.3em] text-cyan-700/80">PHASE 2 PENDING · EMAIL · AI CONVERSATION · MOSS-B</span>
+    </footer>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   J.A.R.V.I.S. MK I — Voice Command Core
+   ───────────────────────────────────────────────────────────────
+   API KEYS (live)
+   ▸ Weather  · OpenWeatherMap
+   ▸ News     · NewsAPI.org
+   ▸ Claude   · reserved for Phase-2 AI conversation link
+   ═══════════════════════════════════════════════════════════════ */
+const WX_KEY    = "270a85fe1c4c9c89b6b3a42d244d73fb";
+const NEWS_KEY  = "9bc3dd400bfc49899acc9f2e30f796e9";
+const CLAUDE_KEY = "01HRcjfG6q2t7BhiQJd4RGAB"; // Phase-2 AI core handshake
+
+const $ = id => document.getElementById(id);
+const $each = (sel, fn) => document.querySelectorAll(sel).forEach(fn);
+const has = (s, frag) => s.includes(frag);
+
+const state = {
+  voiceOn: true, vol: 80, muted: false,
+  wake: false, wakeUntil: 0, listening: false, mode: null, convo: false, noSpeech: 0,
+  recGen: 0, speaking: false, lastWakeNote: 0, voiceDownUntil: 0, lastVoiceErrNote: 0,
+  bootT: Date.now(), city: null, lat: null, lon: null,
+  weather: null, officeWin: null,
+  audioCtx: null, analyser: null, freqData: null, micReady: false,
+  typer: null, count: 0
+};
+
+const SRI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const TTS = "speechSynthesis" in window;
+
+/* ─────────────── AUDIO HELPERS ─────────────── */
+function ensureAudio(){
+  if (!state.audioCtx){
+    try{ state.audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if (state.audioCtx && state.audioCtx.state === "suspended") state.audioCtx.resume();
+}
+function beep(freq=880, dur=.1, type="sine", gain=.14, delay=0){
+  if (!state.audioCtx || state.muted) return;
+  const t = state.audioCtx.currentTime + delay;
+  const o = state.audioCtx.createOscillator(), g = state.audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(gain*(state.vol/100), t+.012);
+  g.gain.exponentialRampToValueAtTime(.0001, t+dur);
+  o.connect(g); g.connect(state.audioCtx.destination);
+  o.start(t); o.stop(t+dur+.05);
+}
+const chirp   = () => { beep(1320,.09,"sine",.12); beep(1760,.12,"sine",.1,.09); };
+const chirpLo = () => { beep(660,.12,"sine",.12); beep(420,.2,"sine",.1,.1); };
+const affirm  = () => beep(990,.07,"triangle",.12);
+
+/* ─────────────── LOG ─────────────── */
+function addLog(kind, msg){
+  const el = document.createElement("div");
+  el.className = "log-line log-" + kind;
+  const tag = {sys:"SYS", user:"YOU", jarvis:"JARVIS", warn:"WARN", err:"ERROR"}[kind] || "SYS";
+  el.innerHTML = `<span class="log-t">${new Date().toLocaleTimeString("en-GB")}</span><span class="log-tag">[${tag}]</span><span class="log-m"></span>`;
+  el.querySelector(".log-m").textContent = typeof personalize === "function" ? personalize(msg) : msg;
+  const box = $("consoleLog");
+  box.appendChild(el);
+  while (box.children.length > 80) box.firstChild.remove();
+  box.scrollTop = box.scrollHeight;
+  state.count++; $("logCount").textContent = state.count + " EVENTS";
+}
+
+/* ─────────────── STATE / ORB ─────────────── */
+const STATE_META = {
+  idle:      {label:"STANDBY",    tran:"Awaiting your command, Moses."},
+  listening: {label:"LISTENING",  tran:"Listening…"},
+  processing:{label:"PROCESSING", tran:"Working on it…"},
+  speaking:  {label:"RESPONDING", tran:""}
+};
+function setState(s, tranText){
+  $("orbWrap").dataset.state = s;
+  $("stateLabel").textContent = STATE_META[s].label;
+  if (tranText !== undefined) $("transcript").textContent = tranText;
+  const live = (s === "listening");
+  if (SRI){ $("micDot").className = "dot " + (live ? "live" : "warn"); $("micState").textContent = live ? "LIVE" : "IDLE"; }
+  state.listening = live;
+}
+
+/* ─────────────── SPEECH OUTPUT ─────────────── */
+let voices = [];
+function loadVoices(){ voices = TTS ? speechSynthesis.getVoices() : []; }
+if (TTS){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function pickVoice(){
+  const pref = ["Google UK English Male","Daniel","Microsoft Ryan","Google US English","Alex"];
+  for (const p of pref){ const v = voices.find(v => v.name.includes(p)); if (v) return v; }
+  return voices.find(v => v.lang && v.lang.startsWith("en")) || voices[0] || null;
+}
+const BOSS = "Moses";
+const personalize = t => t.replace(/\bsir\b/gi, BOSS);
+function speak(text, logIt = true){
+  text = personalize(text);
+  if (logIt) addLog("jarvis", text);
+  setState("speaking", text.length <= 90 ? text : text.slice(0,90) + "…");
+  const wasAttentive = state.wake && Date.now() < state.wakeUntil;
+  // cut the mic while Jarvis speaks — he must never process his own voice
+  state.speaking = true;
+  if (rec){ try{ rec.abort(); }catch(e){} }
+  const resume = () => {
+    state.speaking = false;
+    if (state.convo && state.mode !== "wake"){ startListening("ptt", true); }
+    else if (state.wake){
+      state.wakeUntil = wasAttentive ? Date.now() + 15000 : 0;
+      startListening("wake", true);
+      if (wasAttentive) setState("listening", "Listening, Moses — say your command, or call my name again.");
+    }
+    else setState(state.mode ? "listening" : "idle");
+  };
+  if (!state.voiceOn || !TTS){ setTimeout(resume, Math.min(4000, 60*text.length)); return; }
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/[▸›·]/g,","));
+    const v = pickVoice(); if (v) u.voice = v;
+    u.rate = 1.02; u.pitch = .82; u.volume = state.muted ? 0 : state.vol/100;
+    u.onend = u.onerror = resume;
+    speechSynthesis.speak(u);
+  }catch(e){ setTimeout(resume, 1500); }
+}
+
+/* ─────────────── VOLUME ─────────────── */
+const VOL_C = 326.7;
+function setVol(n, quiet){
+  state.vol = Math.max(0, Math.min(100, Math.round(n)));
+  if (state.vol > 0) state.muted = false;
+  $("volArc").style.strokeDashoffset = (VOL_C * (1 - state.vol/100)).toFixed(1);
+  $("volVal").textContent = state.vol;
+  updateMuteBtn();
+  if (!quiet){ beep(880,.08,"triangle"); }
+}
+function updateMuteBtn(){
+  $("muteBtn").innerHTML = state.muted || state.vol===0
+    ? '<i data-lucide="volume-x"></i>Muted' : '<i data-lucide="volume-2"></i>Audio';
+  lucide.createIcons();
+}
+
+/* ─────────────── SPEECH INPUT ─────────────── */
+let rec = null;
+function makeRec(mode){
+  const r = new SRI();
+  const gen = state.recGen; // session token — a stale session can never resurrect itself
+  r.lang = "en-US"; r.interimResults = true; r.maxAlternatives = 1;
+  r.continuous = (mode === "wake");
+  r.onresult = e => {
+    state.netErr = 0; state.voiceDownUntil = 0; // uplink healthy — clear drop counter and cooldown
+    let interim = "", final = "";
+    for (let i = e.resultIndex; i < e.results.length; i++){
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t; else interim += t;
+    }
+    if (interim) $("transcript").textContent = "‹ " + interim.trim() + " ›";
+    if (final.trim()) mode === "wake" ? handleWake(final.trim()) : finishPTT(final.trim());
+  };
+  r.onerror = e => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed"){
+      addLog("err", "Microphone access denied — check the mic icon in your browser address bar and allow it.");
+      setState("idle", "Mic blocked, Moses. Allow microphone access, or use the console.");
+      state.wake = false; state.convo = false;
+      $("wakeToggle").setAttribute("aria-checked","false");
+    } else if (e.error === "network"){
+      state.netErr = (state.netErr || 0) + 1;
+      if ((state.convo || state.wake) && state.netErr <= 3){
+        addLog("warn", `Voice uplink dropped (attempt ${state.netErr}/3) — re-acquiring…`);
+        setState("listening", "Re-acquiring voice uplink…");
+        setTimeout(() => { if (state.convo || state.wake) startListening(state.mode === "wake" ? "wake" : "ptt", true); }, 1100 * state.netErr);
+      } else {
+        state.convo = false;
+        if (state.wake){ state.wake = false; state.mode = null; $("wakeToggle").setAttribute("aria-checked","false"); addLog("sys","Wake-word sentry stood down after repeated uplink failures."); }
+        state.voiceDownUntil = Date.now() + 30000; // stabilization window — stop hammering the endpoint
+        if (Date.now() - state.lastVoiceErrNote > 5000){
+          state.lastVoiceErrNote = Date.now();
+          addLog("err", "Speech service unreachable — Chrome's recognition runs in the cloud. Check internet/VPN/firewall, then run MIC TEST in the Systems panel.");
+        }
+        chirpLo();
+        setState("idle", "Voice engine offline in this environment, Moses — the console is fully operational.");
+      }
+    } else if (e.error === "audio-capture"){
+      addLog("err", "No microphone detected by the system.");
+      setState("idle", "No microphone found, Moses.");
+    } else if (e.error === "no-speech"){
+      if (state.convo && mode === "ptt"){
+        state.noSpeech++;
+        if (state.noSpeech >= 2){
+          state.convo = false; state.noSpeech = 0;
+          setState("idle", "Going quiet — tap the core when you need me, Moses.");
+          addLog("sys","Conversation paused after silence.");
+        } else {
+          setState("listening", "Still listening, Moses…");
+          setTimeout(() => { if (state.convo) startListening("ptt", true); }, 400);
+        }
+      } else if (mode === "ptt"){
+        setState("idle", "No speech detected. Tap the core and try again, Moses.");
+      }
+    }
+  };
+  r.onend = () => {
+    if (gen !== state.recGen) return; // superseded session — stay dead
+    if (mode === "wake" && state.wake && state.mode === "wake" && !state.speaking){
+      setTimeout(() => { if (gen === state.recGen){ try{ r.start(); }catch(e){} } }, 350);
+    }
+    else if (mode === "ptt" && state.listening && !state.speaking){ setState("idle"); }
+  };
+  return r;
+}
+function startListening(mode, quiet){
+  if (!SRI){ addLog("err","Speech recognition is unsupported in this browser — Chrome or Edge is required. Console input works everywhere."); setState("idle","Voice needs Chrome or Edge, Moses — console input works."); return; }
+  const cd = (state.voiceDownUntil || 0) - Date.now();
+  if (cd > 0){
+    if (!quiet) addLog("warn", `Voice uplink stabilizing — ${Math.ceil(cd/1000)}s cooldown after repeated failures. Console input is live.`);
+    setState("idle", `Stabilizing the uplink, Moses — ${Math.ceil(cd/1000)} seconds, or type your command.`);
+    return;
+  }
+  ensureAudio(); initMicViz();
+  state.recGen++; // supersede any previous session
+  try{ rec && rec.abort(); }catch(e){}
+  state.mode = mode; rec = makeRec(mode);
+  try{ rec.start(); }catch(e){}
+  if (quiet) beep(1500,.06,"sine",.09); else chirp();
+  setState("listening", mode === "wake" ? "Wake word armed — say “Hey Jarvis”." : "Listening — speak now, Moses.");
+}
+function stopListening(){
+  state.mode = null; state.convo = false; state.wakeUntil = 0;
+  try{ rec && rec.abort(); }catch(e){}
+  setState("idle");
+}
+function finishPTT(text){
+  addLog("user", text);
+  state.noSpeech = 0;
+  setState("processing", "‹ " + text + " ›");
+  try{ rec && rec.stop(); }catch(e){}
+  state.mode = null; // recognition session done — convo flag decides if we re-listen after reply
+  processCommand(text);
+}
+function handleWake(text){
+  const low = text.toLowerCase();
+  const now = Date.now();
+  state.noSpeech = 0;
+  if (has(low,"jarvis")){
+    const rest = low.split("jarvis").slice(1).join(" ").replace(/^[,.\s]+/,"").trim();
+    state.wakeUntil = now + 15000;
+    if (rest.length > 2){
+      addLog("user", rest);
+      setState("processing", "‹ " + rest + " ›");
+      processCommand(rest);
+    } else {
+      addLog("sys", "Wake word acknowledged — attention window open (15s, extends after every reply).");
+      speak("Yes, Moses? I'm listening.");
+    }
+  } else if (now < state.wakeUntil){
+    addLog("user", text);
+    setState("processing", "‹ " + text + " ›");
+    processCommand(text);
+  } else if (now - state.lastWakeNote > 9000){
+    state.lastWakeNote = now;
+    addLog("sys", "Speech heard — address me as “jarvis” first, Moses.");
+  }
+}
+
+/* ─────────────── MIC VISUALIZER ─────────────── */
+async function initMicViz(){
+  if (state.micReady || !navigator.mediaDevices) return;
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    ensureAudio();
+    const src = state.audioCtx.createMediaStreamSource(stream);
+    state.analyser = state.audioCtx.createAnalyser();
+    state.analyser.fftSize = 256;
+    state.freqData = new Uint8Array(state.analyser.frequencyBinCount);
+    src.connect(state.analyser);
+    state.micReady = true;
+  }catch(e){ /* simulated bars */ }
+}
+function drawWave(){
+  const cv = $("waveCanvas"), wrap = $("orbWrap");
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth + 140, h = wrap.clientHeight + 140;
+  if (cv.width !== w*dpr){ cv.width = w*dpr; cv.height = h*dpr; cv.style.width = w+"px"; cv.style.height = h+"px"; }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  const cx = w/2, cy = h/2, R = wrap.clientWidth*0.54;
+  const N = 72, st = $("orbWrap").dataset.state;
+  const active = (st === "listening" || st === "speaking" || st === "processing");
+  let data = null;
+  if (state.analyser && state.freqData){ state.analyser.getByteFrequencyData(state.freqData); data = state.freqData; }
+  const t = performance.now()/1000;
+  for (let i=0;i<N;i++){
+    const a = (i/N)*Math.PI*2 - Math.PI/2;
+    let v;
+    if (active && data){ v = data[Math.floor(i/N*data.length*0.7)]/255; }
+    else { v = active ? Math.abs(Math.sin(t*3 + i*.6)) * .5 + .18 : Math.abs(Math.sin(t*1.4 + i*.45)) * .1 + .05; }
+    const amp = active ? 10 + v*52 : 4 + v*14;
+    const x1 = cx + Math.cos(a)*R, y1 = cy + Math.sin(a)*R;
+    const x2 = cx + Math.cos(a)*(R+amp), y2 = cy + Math.sin(a)*(R+amp);
+    ctx.strokeStyle = active ? `rgba(103,232,249,${.25 + v*.6})` : `rgba(56,189,248,${.12 + v*.25})`;
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+}
+
+/* ─────────────── STARFIELD + LOOPS ─────────────── */
+let stars = [];
+function initStars(){
+  const cv = $("stars");
+  const resize = () => { cv.width = innerWidth; cv.height = Math.max(innerHeight, $("appWrap").scrollHeight); };
+  resize(); addEventListener("resize", resize);
+  stars = Array.from({length:170}, () => ({
+    x: Math.random(), y: Math.random(), r: Math.random()*1.3 + .3,
+    s: Math.random()*.35 + .06, tw: Math.random()*Math.PI*2
+  }));
+}
+function drawStars(){
+  const cv = $("stars"), ctx = cv.getContext("2d");
+  const t = performance.now()/1000;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  for (const s of stars){
+    s.y -= s.s/900; if (s.y < 0) s.y = 1;
+    const a = .25 + Math.abs(Math.sin(t*.9 + s.tw))*.5;
+    ctx.fillStyle = `rgba(148,225,255,${a})`;
+    ctx.beginPath(); ctx.arc(s.x*cv.width, s.y*cv.height, s.r, 0, 7); ctx.fill();
+  }
+}
+function loop(){ drawStars(); drawWave(); requestAnimationFrame(loop); }
+
+/* ─────────────── CLOCK / UPTIME / TEMP ─────────────── */
+setInterval(() => {
+  const d = new Date();
+  $("clock").textContent = d.toLocaleTimeString("en-GB");
+  $("dateLine").textContent = d.toLocaleDateString("en-GB",{ weekday:"short", day:"2-digit", month:"short", year:"numeric" }).toUpperCase();
+  const up = Math.floor((Date.now() - state.bootT)/1000);
+  $("uptime").textContent = [up/3600, up/60%60, up%60].map(n => String(Math.floor(n)).padStart(2,"0")).join(":");
+}, 1000);
+setInterval(() => { $("coreTemp").textContent = (36 + Math.random()*1.4).toFixed(1) + "°C"; }, 3200);
+
+/* ═══════════════ WEATHER MODULE ═══════════════ */
+function wxIcon(id, isDay){
+  if (id >= 200 && id < 300) return "cloud-lightning";
+  if (id >= 300 && id < 400) return "cloud-drizzle";
+  if (id >= 500 && id < 600) return "cloud-rain";
+  if (id >= 600 && id < 700) return "snowflake";
+  if (id >= 700 && id < 800) return "cloud-fog";
+  if (id === 800) return isDay ? "sun" : "moon";
+  if (id === 801 || id === 802) return "cloud-sun";
+  return "cloud";
+}
+const getPos = () => new Promise(res => {
+  if (!navigator.geolocation) return res(null);
+  navigator.geolocation.getCurrentPosition(p => res(p.coords), () => res(null), { timeout:3500 });
+});
+async function fetchWeather(announce){
+  if (announce) setState("processing", "Triangulating weather satellites…");
+  try{
+    let q = "";
+    if (state.lat != null) q = `lat=${state.lat}&lon=${state.lon}`;
+    else if (state.city) q = `q=${encodeURIComponent(state.city)}`;
+    else {
+      const c = await getPos();
+      if (c && !state.city){ state.lat = c.latitude; state.lon = c.longitude; q = `lat=${c.latitude}&lon=${c.longitude}`; }
+      else q = `q=${encodeURIComponent(state.city || "London")}`;
+    }
+    const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?${q}&units=metric&appid=${WX_KEY}`);
+    const d = await r.json();
+    if (String(d.cod) !== "200") throw new Error(d.message || "uplink");
+    renderWeather(d, false);
+    state.weather = d;
+    addLog("sys", `Weather uplink acquired — ${d.name}, ${d.sys.country}: ${Math.round(d.main.temp)}°C, ${d.weather[0].description}.`);
+    if (announce){
+      speak(`Currently in ${d.name}, it is ${Math.round(d.main.temp)} degrees with ${d.weather[0].description}. Humidity at ${d.main.humidity} percent, wind at ${Math.round(d.wind.speed*3.6)} kilometres per hour.`);
+    }
+  }catch(e){
+    renderWeather({ name:(state.city||"London"), sys:{country:"GB", sunrise:Math.floor(Date.now()/1000)-14400},
+      main:{temp:11, humidity:81}, wind:{speed:5.1}, weather:[{id:500, description:"light rain", icon:"10d"}] }, true);
+    addLog("warn","Weather uplink failed — displaying offline cache.");
+    if (announce) speak(state.weather
+      ? "The live satellite feed is unreachable. Reading last cached report."
+      : "Weather uplink failed, sir. Showing the offline cache — approximately eleven degrees with light rain.");
+  }
+}
+function renderWeather(d, cache){
+  const isDay = (d.weather[0].icon || "d").endsWith("d");
+  $("wxIconWrap").innerHTML = `<i data-lucide="${wxIcon(d.weather[0].id, isDay)}" class="w-9 h-9"></i>`;
+  $("wxTemp").textContent = Math.round(d.main.temp) + "°";
+  $("wxCond").textContent = d.weather[0].description;
+  $("wxCity").textContent = d.name + ", " + d.sys.country;
+  $("wxTime").textContent = "UPDATED " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+  $("wxHum").textContent = d.main.humidity + "%";
+  $("wxWind").textContent = Math.round(d.wind.speed*3.6) + " km/h";
+  $("wxSun").textContent = new Date(d.sys.sunrise*1000).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+  $("wxTag").classList.toggle("hidden", !cache);
+  lucide.createIcons();
+}
+
+/* ═══════════════ NEWS MODULE ═══════════════ */
+const NEWS_CACHE = [
+  { title:"Stark Industries unveils next-generation arc reactor prototype", source:{name:"CACHE — STARK WIRE"}, url:"#" },
+  { title:"Avengers Tower completes full clean-energy retrofit ahead of schedule", source:{name:"CACHE — CITY DESK"}, url:"#" },
+  { title:"S.H.I.E.L.D. declassifies cyber-threat monitoring framework", source:{name:"CACHE — GLOBAL INTEL"}, url:"#" },
+  { title:"MIT opens advanced AI research wing funded by Stark grant", source:{name:"CACHE — SCIENCE"}, url:"#" },
+  { title:"Global markets rally as repulsor tech enters commercial trials", source:{name:"CACHE — FINANCE"}, url:"#" }
+];
+async function fetchNews(announce){
+  if (announce) setState("processing", "Tuning the global news feed…");
+  try{
+    const r = await fetch(`https://newsapi.org/v2/top-headlines?country=us&pageSize=6&apiKey=${NEWS_KEY}`);
+    const d = await r.json();
+    if (d.status !== "ok" || !d.articles || !d.articles.length) throw new Error(d.message || "feed");
+    const arts = d.articles.filter(a => a.title && a.title !== "[Removed]").slice(0,5);
+    renderNews(arts, false);
+    addLog("sys", `News feed synced — ${arts.length} top headlines acquired.`);
+    if (announce){
+      const tops = arts.slice(0,3).map((a,i) => `Headline ${i+1}: ${a.title}`).join(". ");
+      speak(`Here are today's top headlines. ${tops}.`);
+    }
+  }catch(e){
+    renderNews(NEWS_CACHE, true);
+    addLog("warn","Live news feed unreachable from this environment — offline cache engaged.");
+    if (announce){
+      const tops = NEWS_CACHE.slice(0,3).map((a,i) => `Headline ${i+1}: ${a.title}`).join(". ");
+      speak("The live feed is down, sir. Reading from the offline cache. " + tops + ".");
+    }
+  }
+}
+function renderNews(arts, cache){
+  $("newsList").innerHTML = arts.map((a,i) => `
+    <a class="news-item" href="${a.url}" target="_blank" rel="noopener">
+      <div class="flex items-baseline gap-2">
+        <span class="font-mono2 text-[10px] text-cyan-500">0${i+1}</span>
+        <span class="text-[13px] font-semibold leading-snug text-cyan-50/95">${a.title}</span>
+      </div>
+      <div class="font-mono2 text-[9px] tracking-[.18em] text-cyan-600 mt-0.5 pl-6 uppercase">${(a.source && a.source.name) || "WIRE"}</div>
+    </a>`).join("");
+  $("newsTag").classList.toggle("hidden", !cache);
+}
+
+/* ═══════════════ APP / WEB / FOLDER LAUNCHER ═══════════════ */
+function openTab(url, label){
+  const w = window.open(url, "_blank");
+  addLog("sys", `Launch request dispatched — ${label}: ${url}`);
+  return w;
+}
+function openWord(){
+  state.officeWin = openTab("https://www.office.com/launch/word", "Microsoft Word");
+  speak("Opening Microsoft Word, sir.");
+  if (!state.officeWin) addLog("warn","Pop-up blocked — allow pop-ups for this site to launch applications.");
+}
+function closeWord(){
+  clearInterval(state.typer);
+  const docOpen = !$("docOverlay").classList.contains("hidden");
+  let closed = false;
+  if (state.officeWin && !state.officeWin.closed){ state.officeWin.close(); closed = true; }
+  if (docOpen){ $("docOverlay").classList.add("hidden"); $("docOverlay").classList.remove("flex"); closed = true; }
+  if (closed) speak("Closing Word. Your document has been archived.");
+  else speak("There is no active Word session to close, sir.");
+  chirpLo();
+}
+function openDoc(){
+  clearInterval(state.typer);
+  $("docOverlay").classList.remove("hidden");
+  $("docOverlay").classList.add("flex");
+}
+function typeIntoDoc(text){
+  openDoc();
+  const body = $("docBody");
+  body.innerHTML = '<span class="cursor-blink"></span>';
+  const cursor = body.querySelector(".cursor-blink");
+  const chars = [...text]; let i = 0;
+  clearInterval(state.typer);
+  state.typer = setInterval(() => {
+    const step = Math.random() < .3 ? 2 : 1;
+    for (let k = 0; k < step && i < chars.length; k++) body.insertBefore(document.createTextNode(chars[i++]), cursor);
+    $("docWords").textContent = body.textContent.trim().split(/\s+/).filter(Boolean).length;
+    if (i >= chars.length){ clearInterval(state.typer); $("docSaved").classList.add("hidden"); affirm(); }
+  }, 26);
+}
+function saveDoc(){
+  if ($("docOverlay").classList.contains("hidden")){ speak("Nothing is open to save, sir."); return; }
+  $("docSaved").classList.remove("hidden");
+  lucide.createIcons();
+  beep(1180,.09,"sine",.12); beep(1560,.11,"sine",.1,.08);
+  speak("Document saved to the archive drive.");
+}
+
+/* ─────────────── SCREENSHOT ─────────────── */
+async function screenshot(){
+  setState("processing", "Capturing visor feed…");
+  addLog("sys","Rendering interface snapshot…");
+  try{
+    const url = await htmlToImage.toPng($("appWrap"), { backgroundColor:"#02060c", pixelRatio:1.6 });
+    const a = document.createElement("a");
+    a.download = "jarvis-vision-" + Date.now() + ".png";
+    a.href = url; a.click();
+    beep(900,.06,"triangle",.14); beep(1500,.1,"triangle",.12,.07);
+    speak("Screenshot captured and archived to your downloads folder.");
+  }catch(e){
+    addLog("err","Snapshot render failed in this environment.");
+    speak("I was unable to capture the screen from this environment, sir.");
+  }
+}
+
+/* ─────────────── SHUTDOWN ─────────────── */
+function shutdown(){
+  chirpLo();
+  state.wake = false; stopListening();
+  speak("Powering down all core systems. It has been a pleasure, sir.");
+  setTimeout(() => {
+    const sd = $("shutdown");
+    sd.classList.remove("hidden"); sd.classList.add("flex");
+    requestAnimationFrame(() => { $("sdOrb").style.transform = "scale(.05)"; $("sdOrb").style.opacity = "0"; });
+    setTimeout(() => { const rb = $("reboot"); rb.style.opacity = "1"; rb.style.pointerEvents = "auto"; }, 2100);
+  }, 900);
+}
+
+/* ═══════════════ SHOPPING MODULE ═══════════════ */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let shopping = [];
+try{ shopping = JSON.parse(localStorage.getItem("jarvis_shopping") || "[]"); }catch(e){}
+const splitList = s => s.split(/,| and /i).map(x => x.trim().replace(/[.!?]+$/,"")).filter(x => x.length > 1);
+function saveShopping(){ try{ localStorage.setItem("jarvis_shopping", JSON.stringify(shopping)); }catch(e){} renderShopping(); }
+function renderShopping(){
+  const box = $("shopList");
+  const open = shopping.filter(s => !s.done).length;
+  $("shopCount").textContent = open + (open === 1 ? " ITEM" : " ITEMS");
+  if (!shopping.length){
+    box.innerHTML = '<div class="font-mono2 text-[10px] text-cyan-600/80 px-1 py-3 tracking-widest leading-relaxed">INVENTORY EMPTY — SAY “ADD MILK TO SHOPPING LIST”</div>';
+    return;
+  }
+  box.innerHTML = shopping.map((it,i) => `
+    <li class="row-item">
+      <button class="row-check ${it.done ? "done" : ""}" data-schk="${i}" title="Toggle bought">${it.done ? '<i data-lucide="check"></i>' : ""}</button>
+      <span class="row-name ${it.done ? "done" : ""}">${esc(it.name)}</span>
+      <button class="row-del" data-sdel="${i}" title="Remove"><i data-lucide="x" class="w-3 h-3"></i></button>
+    </li>`).join("");
+  lucide.createIcons();
+}
+function addShopping(items){
+  if (!items.length) return speak("What shall I add, Moses? For example: add milk and eggs to the shopping list.");
+  let added = 0;
+  items.forEach(n => {
+    if (!shopping.some(s => s.name.toLowerCase() === n.toLowerCase())){
+      shopping.push({ name: n.charAt(0).toUpperCase() + n.slice(1), done: false }); added++;
+    }
+  });
+  saveShopping(); affirm();
+  if (added) speak(`Added ${items.join(" and ")} to your shopping list.`);
+  else speak("That is already on your shopping list, Moses.");
+}
+function removeShopping(items){
+  const hits = [];
+  items.forEach(n => {
+    const i = shopping.findIndex(s => s.name.toLowerCase().includes(n.toLowerCase()));
+    if (i >= 0){ hits.push(shopping[i].name); shopping.splice(i,1); }
+  });
+  saveShopping();
+  speak(hits.length ? `Removed ${hits.join(" and ")} from your shopping list.` : "That item is not on your list, Moses.");
+}
+function markBought(items){
+  const hits = [];
+  items.forEach(n => {
+    const it = shopping.find(s => !s.done && s.name.toLowerCase().includes(n.toLowerCase()));
+    if (it){ it.done = true; hits.push(it.name); }
+  });
+  saveShopping();
+  speak(hits.length ? `Marked ${hits.join(" and ")} as bought. Well done.` : "I couldn't find that on your shopping list, Moses.");
+}
+function clearShopping(){
+  if (!shopping.length) return speak("The shopping list is already empty, Moses.");
+  shopping = []; saveShopping(); chirpLo();
+  speak("Shopping list cleared, Moses.");
+}
+function readShopping(){
+  const open = shopping.filter(s => !s.done).map(s => s.name);
+  if (!open.length) return speak("Your shopping list is empty, Moses. Say — add milk to shopping list — to build it.");
+  speak(`There ${open.length === 1 ? "is" : "are"} ${open.length} item${open.length === 1 ? "" : "s"} on your shopping list: ${open.join(", ")}.`);
+  addLog("sys", "Shopping inventory: " + open.join(" · "));
+}
+
+/* ═══════════════ APPOINTMENTS MODULE ═══════════════ */
+let appts = [];
+try{ appts = JSON.parse(localStorage.getItem("jarvis_appts") || "[]"); }catch(e){}
+function pruneAppts(){ const cut = Date.now() - 3600000; appts = appts.filter(a => new Date(a.when).getTime() > cut); }
+function fmtWhen(d){ return d.toLocaleDateString("en-GB",{weekday:"short", day:"numeric", month:"short"}) + " · " + d.toLocaleTimeString("en-GB",{hour:"numeric", minute:"2-digit"}); }
+function saveAppts(){ try{ localStorage.setItem("jarvis_appts", JSON.stringify(appts)); }catch(e){} renderAppts(); }
+function renderAppts(){
+  pruneAppts();
+  appts.sort((a,b) => new Date(a.when) - new Date(b.when));
+  const box = $("apptList");
+  if (!appts.length){
+    box.innerHTML = '<div class="font-mono2 text-[10px] text-cyan-600/80 px-1 py-3 tracking-widest leading-relaxed">NO ENGAGEMENTS SCHEDULED</div>';
+    return;
+  }
+  box.innerHTML = appts.map(a => `
+    <li class="row-item">
+      <i data-lucide="calendar-check" class="w-3.5 h-3.5 text-cyan-400/80 flex-none"></i>
+      <div class="flex-1 min-w-0">
+        <div class="font-mono2 text-[11px] text-cyan-50 truncate">${esc(a.title)}</div>
+        <div class="font-mono2 text-[9px] text-cyan-500/90 tracking-widest">${fmtWhen(new Date(a.when)).toUpperCase()}</div>
+      </div>
+      <button class="row-del" data-adel="${a.id}" title="Cancel"><i data-lucide="x" class="w-3 h-3"></i></button>
+    </li>`).join("");
+  lucide.createIcons();
+}
+function scheduleAppointment(raw, openCal){
+  let rest = raw
+    .replace(/^(please )?(can you |could you )?(make|schedule|book|create|set( up)?)( me)?( an| a)? (appointment|meeting)/i,"")
+    .replace(/^(with|for)\s+/i,"").replace(/[.!?]+$/,"").trim();
+  if (rest.length < 2){
+    return speak("Certainly. Give me the details — for example: make an appointment with the dentist tomorrow at 3 PM.");
+  }
+  const low = rest.toLowerCase();
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let hour = 9, min = 0;
+  const tm = rest.match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)\b/i) || rest.match(/\bat\s+(\d{1,2})(?::(\d{2}))?/i) || rest.match(/\b(\d{1,2}):(\d{2})\b/);
+  if (tm){
+    hour = +tm[1]; min = +(tm[2] || 0);
+    const ap = (tm[3] || "").toLowerCase();
+    if (ap.startsWith("p") && hour < 12) hour += 12;
+    if (ap.startsWith("a") && hour === 12) hour = 0;
+    if (hour > 23){ hour = 9; min = 0; }
+  }
+  const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+  if (has(low,"day after tomorrow")) d.setDate(d.getDate() + 2);
+  else if (has(low,"tomorrow")) d.setDate(d.getDate() + 1);
+  else {
+    const di = days.findIndex(x => low.includes(x));
+    if (di >= 0){ let diff = (di - d.getDay() + 7) % 7; if (!diff) diff = 7; d.setDate(d.getDate() + diff); }
+  }
+  d.setHours(hour, min, 0, 0);
+  let title = rest
+    .replace(/\b(at|around)\s+\d{1,2}(:\d{2})?\s*(a\.?m\.?|p\.?m\.?)?\b/ig,"")
+    .replace(/\b\d{1,2}:\d{2}\s*(a\.?m\.?|p\.?m\.?)?\b/ig,"")
+    .replace(/\b(day after tomorrow|tomorrow|today|tonight)\b/ig,"")
+    .replace(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/ig,"")
+    .replace(/\s+/g," ").replace(/^(on|for|at)\s+/i,"").trim();
+  if (!title) title = "Appointment";
+  title = title.charAt(0).toUpperCase() + title.slice(1);
+  appts.push({ id: Date.now(), title, when: d.toISOString() });
+  saveAppts();
+  const whenStr = d.toLocaleDateString("en-GB",{weekday:"long", day:"numeric", month:"long"}) + " at " + d.toLocaleTimeString("en-GB",{hour:"numeric", minute:"2-digit"});
+  addLog("sys", `Diary entry committed — "${title}" on ${whenStr}.`);
+  if (openCal){
+    const fmt = t => t.toISOString().replace(/[-:]|\.\d{3}/g,"").slice(0,15) + "Z";
+    openTab(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${fmt(d)}/${fmt(new Date(d.getTime() + 3600000))}`, "Google Calendar — new event");
+    speak(`Scheduled: ${title}, ${whenStr}. I've opened Google Calendar so you can confirm it.`);
+  } else speak(`Noted: ${title}, ${whenStr}.`);
+}
+function readAppts(){
+  pruneAppts();
+  if (!appts.length) return speak("Your diary is clear, Moses. No engagements scheduled.");
+  const next = appts.slice(0,3).map(a => {
+    const d = new Date(a.when);
+    return `${a.title} on ${d.toLocaleDateString("en-GB",{weekday:"long", day:"numeric", month:"long"})} at ${d.toLocaleTimeString("en-GB",{hour:"numeric", minute:"2-digit"})}`;
+  });
+  speak((appts.length === 1 ? "You have one engagement: " : "Your next engagements: ") + next.join(". ") + ".");
+}
+
+/* ═══════════════ LONDON TRANSPORT (TfL) ═══════════════ */
+const TFL_COLORS = {
+  "Bakerloo":"#B36305","Central":"#E32017","Circle":"#FFD300","District":"#00782A",
+  "Hammersmith & City":"#F3A9BB","Jubilee":"#A0A5A9","Metropolitan":"#9B0056","Northern":"#B7BDC4",
+  "Piccadilly":"#003688","Victoria":"#0098D4","Waterloo & City":"#95CDBA","DLR":"#00A4A7",
+  "London Overground":"#EE7C0E","Elizabeth line":"#6950A1","Tram":"#84B817","Liberty":"#5A5A5A","Lioness":"#EE7C0E","Mildmay":"#0077AD","Suffragette":"#5BBD72","Weaver":"#823A62","Windrush":"#ED1B2E"
+};
+const TFL_CACHE = [
+  { name:"Victoria", lineStatuses:[{statusSeverityDescription:"Good Service"}] },
+  { name:"Jubilee", lineStatuses:[{statusSeverityDescription:"Good Service"}] },
+  { name:"Central", lineStatuses:[{statusSeverityDescription:"Minor Delays"}] },
+  { name:"Northern", lineStatuses:[{statusSeverityDescription:"Good Service"}] },
+  { name:"Piccadilly", lineStatuses:[{statusSeverityDescription:"Minor Delays"}] },
+  { name:"Elizabeth line", lineStatuses:[{statusSeverityDescription:"Good Service"}] },
+  { name:"London Overground", lineStatuses:[{statusSeverityDescription:"Good Service"}] },
+  { name:"DLR", lineStatuses:[{statusSeverityDescription:"Good Service"}] }
+];
+async function fetchTfL(announce){
+  if (announce) setState("processing", "Polling the TfL network…");
+  try{
+    const r = await fetch("https://api.tfl.gov.uk/Line/Mode/tube%2Cdlr%2Coverground%2Celizabeth-line%2Ctram/Status");
+    const d = await r.json();
+    if (!Array.isArray(d) || !d.length) throw new Error("feed");
+    renderTfL(d, false);
+    const bad = d.filter(l => ((l.lineStatuses && l.lineStatuses[0] && l.lineStatuses[0].statusSeverityDescription) || "Good Service") !== "Good Service");
+    addLog("sys", `TfL network polled — ${d.length} lines operational, ${bad.length} disruption${bad.length === 1 ? "" : "s"}.`);
+    if (announce){
+      if (!bad.length) speak("Good service across the entire London network, Moses. The city is yours.");
+      else speak(`London transit update. ${bad.map(l => `${l.name} — ${l.lineStatuses[0].statusSeverityDescription.toLowerCase()}`).join(". ")}. All other lines report good service.`);
+    }
+  }catch(e){
+    renderTfL(TFL_CACHE, true);
+    addLog("warn", "TfL uplink unavailable — offline cache engaged.");
+    if (announce) speak("The TfL feed is not responding, Moses. Displaying the last known network cache.");
+  }
+}
+function renderTfL(lines, cache){
+  const norm = lines.map(l => ({
+    name: l.name,
+    desc: (l.lineStatuses && l.lineStatuses[0] && l.lineStatuses[0].statusSeverityDescription) || "Good Service"
+  })).sort((a,b) => (a.desc === "Good Service" ? 1 : 0) - (b.desc === "Good Service" ? 1 : 0));
+  $("tflList").innerHTML = norm.map(l => {
+    const good = l.desc === "Good Service";
+    const c = TFL_COLORS[l.name] || "#38bdf8";
+    const sc = good ? "#34d399" : (/severe|suspend|closed|closure|part/i.test(l.desc) ? "#fb7185" : "#fbbf24");
+    return `<div class="tfl-line">
+      <span class="tfl-bar" style="background:${c};color:${c}"></span>
+      <span class="tfl-name">${esc(l.name)}</span>
+      <span class="tfl-status" style="color:${sc};border-color:${sc}66;background:${sc}14">${l.desc}</span>
+    </div>`;
+  }).join("");
+  $("tflTag").classList.toggle("hidden", !cache);
+  $("tflTime").textContent = "UPDATED " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit", minute:"2-digit"});
+}
+
+/* ═══════════════ LAUNCH TABLE ═══════════════ */
+const SITES_TABLE = [
+  ["youtube","https://www.youtube.com","YouTube"], ["gmail","https://mail.google.com","Gmail"],
+  ["email","https://mail.google.com","Gmail"], ["google","https://www.google.com","Google"],
+  ["github","https://github.com","GitHub"], ["spotify","https://open.spotify.com","Spotify"],
+  ["maps","https://maps.google.com","Google Maps"], ["calendar","https://calendar.google.com","Google Calendar"],
+  ["twitter","https://x.com","X"], ["x dot com","https://x.com","X"], ["netflix","https://www.netflix.com","Netflix"],
+  ["stack overflow","https://stackoverflow.com","Stack Overflow"], ["wikipedia","https://www.wikipedia.org","Wikipedia"],
+  ["reddit","https://www.reddit.com","Reddit"], ["linkedin","https://www.linkedin.com","LinkedIn"]
+];
+
+/* ═══════════════ NOTIFICATIONS ═══════════════ */
+function notify(title, body){
+  try{
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") new Notification(title, { body, silent:true });
+    else if (Notification.permission !== "denied") Notification.requestPermission().then(p => { if (p === "granted") new Notification(title, { body, silent:true }); });
+  }catch(e){}
+}
+
+/* ═══════════════ REMINDERS MODULE ═══════════════ */
+let rems = [];
+try{ rems = JSON.parse(localStorage.getItem("jarvis_rems") || "[]"); }catch(e){}
+function saveRems(){ try{ localStorage.setItem("jarvis_rems", JSON.stringify(rems)); }catch(e){} renderRems(); }
+function renderRems(){
+  const box = $("remList");
+  $("remCount").textContent = rems.length + (rems.length === 1 ? " NOTE" : " NOTES");
+  if (!rems.length){
+    box.innerHTML = '<div class="font-mono2 text-[10px] text-cyan-600/80 px-1 py-3 tracking-widest leading-relaxed">MEMORY BANKS CLEAR — SAY “REMIND ME TO…”</div>';
+    return;
+  }
+  box.innerHTML = rems.map(r => `
+    <li class="row-item">
+      <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-300/80 flex-none"></i>
+      <div class="flex-1 min-w-0">
+        <div class="font-mono2 text-[11px] text-cyan-50 truncate">${esc(r.text)}</div>
+        <div class="font-mono2 text-[9px] text-cyan-500/90 tracking-widest">LOGGED ${new Date(r.at).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"}).toUpperCase()}</div>
+      </div>
+      <button class="row-del" data-rdel="${r.id}" title="Dismiss"><i data-lucide="x" class="w-3 h-3"></i></button>
+    </li>`).join("");
+  lucide.createIcons();
+}
+function addReminder(raw){
+  const text = raw.replace(/^(please )?remind (moses |me )to /i,"").replace(/[.!?]+$/,"").trim();
+  if (!text) return speak("What should I remember, Moses? For example: remind me to prepare tomorrow's lecture.");
+  const item = text.charAt(0).toUpperCase() + text.slice(1);
+  rems.push({ id: Date.now(), text: item, at: Date.now() });
+  saveRems();
+  notify("J.A.R.V.I.S. · REMINDER LOGGED", "Remember to: " + item);
+  addLog("sys", `Reminder archived: "${item}"`);
+  affirm();
+  speak(`Noted, Moses. I'll remind you to ${text}.`);
+}
+function removeReminders(raw){
+  const frag = (raw.match(/^(?:please )?forget (?:the )?reminder (?:to )?(.*)/i) || [, ""])[1].trim();
+  const hit = frag ? rems.find(r => r.text.toLowerCase().includes(frag)) : rems[0];
+  if (!hit) return speak(frag ? "No such reminder on file, Moses." : "There is nothing to forget, Moses.");
+  rems = rems.filter(r => r.id !== hit.id);
+  saveRems(); chirpLo();
+  speak(`Consider it forgotten — ${hit.text} has been erased from memory.`);
+}
+function readReminders(){
+  if (!rems.length) return speak("No reminders on file, Moses. Your memory banks are clear.");
+  speak(`You have ${rems.length} reminder${rems.length === 1 ? "" : "s"}. ${rems.map((r,i) => `${i+1}. ${r.text}`).join(". ")}.`);
+  addLog("sys", "Reminders: " + rems.map(r => r.text).join(" · "));
+}
+
+/* ═══════════════ TASKS MODULE ═══════════════ */
+let tasks = [];
+try{ tasks = JSON.parse(localStorage.getItem("jarvis_tasks") || "[]"); }catch(e){}
+function saveTasks(){ try{ localStorage.setItem("jarvis_tasks", JSON.stringify(tasks)); }catch(e){} renderTasks(); }
+function renderTasks(){
+  const open = tasks.filter(t => !t.done);
+  $("taskCount").textContent = open.length + " OPEN";
+  const box = $("taskList");
+  if (!tasks.length){
+    box.innerHTML = '<div class="font-mono2 text-[10px] text-cyan-600/80 px-1 py-3 tracking-widest leading-relaxed">BOARD CLEAR — SAY “ADD TASK …”</div>';
+    return;
+  }
+  const rank = { high:0, med:1, low:2 };
+  const view = [...tasks].sort((a,b) => (a.done - b.done) || rank[a.prio] - rank[b.prio]);
+  box.innerHTML = view.map(t => `
+    <li class="row-item">
+      <button class="row-check ${t.done ? "done" : ""}" data-tchk="${t.id}" title="Toggle complete">${t.done ? '<i data-lucide="check"></i>' : ""}</button>
+      <span class="pill pill-${t.prio === "high" ? "hi" : t.prio === "med" ? "md" : "lo"}">${t.prio.toUpperCase()}</span>
+      <span class="row-name ${t.done ? "done" : ""}">${esc(t.title)}</span>
+      <button class="row-del" data-tdel="${t.id}" title="Remove"><i data-lucide="x" class="w-3 h-3"></i></button>
+    </li>`).join("");
+  lucide.createIcons();
+}
+function addTask(raw){
+  let m = raw.replace(/^(please )?add (a )?(new )?task\s*/i,"").replace(/[.!?]+$/,"");
+  let prio = "med";
+  const pm = m.match(/^(urgent|high|medium|med|low)[ ,:-]+/i);
+  if (pm){ const p = pm[1].toLowerCase(); prio = p === "urgent" || p === "high" ? "high" : p === "low" ? "low" : "med"; m = m.slice(pm[0].length); }
+  const title = m.replace(/^to /i,"").trim();
+  if (!title) return speak("Describe the task, Moses.");
+  tasks.push({ id: Date.now(), title: title.charAt(0).toUpperCase() + title.slice(1), prio, done: false, at: Date.now() });
+  saveTasks(); affirm();
+  speak(`Task logged: ${title}${prio === "high" ? ". Marked urgent." : "."}`);
+}
+function completeTask(raw, verb){
+  const frag = (raw.match(/^(?:please )?(?:complete|finish|mark .* as done|done) (?:task )?(.*)/i) || [, ""])[1].trim();
+  const it = frag ? tasks.find(t => !t.done && t.title.toLowerCase().includes(frag)) : tasks.find(t => !t.done);
+  if (!it) return speak(frag ? "No matching open task, Moses." : "There is nothing outstanding to close out, Moses.");
+  it.done = true; saveTasks();
+  beep(1400,.07); beep(1800,.1,"sine",.1,.06);
+  speak(`Outstanding work — ${it.title} is complete.`);
+}
+function readTasks(){
+  const open = tasks.filter(t => !t.done);
+  if (!open.length) return speak("Zero tasks outstanding, Moses. A clean execution board.");
+  const rank = { high:0, med:1, low:2 };
+  const list = [...open].sort((a,b) => rank[a.prio] - rank[b.prio]).slice(0,4);
+  speak(`You have ${open.length} task${open.length === 1 ? "" : "s"} outstanding. Top of the board: ${list.map(t => `${t.title}, ${t.prio} priority`).join(". ")}.`);
+  addLog("sys", "Task board: " + open.map(t => t.title).join(" · "));
+}
+
+/* ═══════════════ DEADLINES MODULE ═══════════════ */
+let dls = [];
+try{ dls = JSON.parse(localStorage.getItem("jarvis_dls") || "[]"); }catch(e){}
+function upcomingDls(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return dls
+    .map(x => ({ ...x, days: Math.round((new Date(x.due) - today) / 86400000) }))
+    .filter(x => x.days >= -7)
+    .sort((a,b) => a.days - b.days);
+}
+function daysLabel(n){ return n < 0 ? `${-n}D OVERDUE` : n === 0 ? "DUE TODAY" : n === 1 ? "TOMORROW" : n + " DAYS"; }
+function saveDls(){ try{ localStorage.setItem("jarvis_dls", JSON.stringify(dls)); }catch(e){} renderDls(); }
+function renderDls(){
+  const box = $("dlList");
+  const view = upcomingDls();
+  if (!view.length){
+    box.innerHTML = '<div class="font-mono2 text-[10px] text-cyan-600/80 px-1 py-3 tracking-widest leading-relaxed">RADAR CLEAR — NO DEADLINES TRACKED</div>';
+    return;
+  }
+  box.innerHTML = view.map(x => `
+    <li class="row-item">
+      <i data-lucide="target" class="w-3.5 h-3.5 ${x.days <= 1 ? "text-rose-300" : x.days <= 3 ? "text-amber-300" : "text-cyan-400/80"} flex-none"></i>
+      <div class="flex-1 min-w-0">
+        <div class="font-mono2 text-[11px] text-cyan-50 truncate">${esc(x.title)}</div>
+        <div class="font-mono2 text-[9px] text-cyan-500/90 tracking-widest">${new Date(x.due).toLocaleDateString("en-GB",{weekday:"short", day:"numeric", month:"short"}).toUpperCase()}</div>
+      </div>
+      <span class="count-pill ${x.days <= 1 ? "due" : x.days <= 3 ? "warn" : "ok"}">${daysLabel(x.days)}</span>
+      <button class="row-del" data-ddel="${x.id}" title="Remove"><i data-lucide="x" class="w-3 h-3"></i></button>
+    </li>`).join("");
+  lucide.createIcons();
+}
+function parseDayRef(low){
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (has(low,"day after tomorrow")){ today.setDate(today.getDate() + 2); return today; }
+  if (has(low,"tomorrow")){ today.setDate(today.getDate() + 1); return today; }
+  if (has(low,"today")){ return today; }
+  const monNames = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+  let mm = low.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+  if (mm){
+    const dd = +mm[1], mo = +mm[2] - 1, yy = mm[3] ? (mm[3].length === 2 ? 2000 + +mm[3] : +mm[3]) : today.getFullYear();
+    const d = new Date(yy, mo, dd); if (!isNaN(d)) { if (d < today && !mm[3]) d.setFullYear(d.getFullYear() + 1); return d; }
+  }
+  mm = low.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(january|february|march|april|may|june|july|august|september|october|november|december)\b/);
+  if (mm){
+    const d = new Date(today.getFullYear(), monNames.indexOf(mm[2]), +mm[1]);
+    if (d < today) d.setFullYear(d.getFullYear() + 1);
+    return d;
+  }
+  const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+  for (let i = 0; i < 7; i++){
+    const idx = low.indexOf(days[i]);
+    if (idx >= 0){
+      const d = new Date(today);
+      let diff = (i - d.getDay() + 7) % 7;
+      if (!diff || has(low,"next")) diff = (diff || 7) + (has(low,"next") && diff === 7 && low.indexOf(days[i]) < 5 ? 0 : 0) || (diff === 0 ? 7 : diff);
+      d.setDate(d.getDate() + diff);
+      return d;
+    }
+  }
+  return null;
+}
+function addDeadline(raw){
+  let rest = raw.replace(/^(please )?add (a )?deadline\s*/i,"").replace(/[.!?]+$/,"").trim();
+  if (!rest) return speak("Deadline for what, Moses? Try: add deadline grant proposal next Friday.");
+  const low = rest.toLowerCase();
+  const due = parseDayRef(low);
+  let title = rest
+    .replace(/\b(day after tomorrow|tomorrow|today)\b/ig,"")
+    .replace(/\b(next )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/ig,"")
+    .replace(/\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/g,"")
+    .replace(/\b\d{1,2}(st|nd|rd|th)?( of)? (january|february|march|april|may|june|july|august|september|october|november|december)\b/ig,"")
+    .replace(/^(for|on|by|due)\s+/i,"").replace(/\s+/g," ").trim();
+  if (!title) title = "Deadline";
+  title = title.charAt(0).toUpperCase() + title.slice(1);
+  if (!due) return speak(`I have "${title}", but no date attached. When is it due — tomorrow, Friday, or a date?`);
+  dls.push({ id: Date.now(), title, due: due.toISOString() });
+  saveDls(); affirm();
+  const dd = Math.round((new Date(due).setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / 86400000);
+  speak(`Deadline locked: ${title}, due ${due.toLocaleDateString("en-GB",{weekday:"long", day:"numeric", month:"long"})}. That is ${daysLabel(dd).toLowerCase()}.`);
+}
+function readDeadlines(){
+  const up = upcomingDls().filter(x => x.days >= 0);
+  if (!up.length) return speak("Radar is clear — no upcoming deadlines tracked, Moses.");
+  speak(`Tracking ${up.length} deadline${up.length === 1 ? "" : "s"}. ${up.slice(0,4).map(x => `${x.title} — ${x.daysLabel && x.daysLabel(x.days) || daysLabel(x.days).toLowerCase()}`).join(". ")}.`);
+  addLog("sys", "Deadlines: " + up.map(x => `${x.title} (${daysLabel(x.days)})`).join(" · "));
+}
+
+/* ═══════════════ CRYPTO MODULE ═══════════════ */
+const COINS = [
+  { id:"bitcoin", sym:"BTC", name:"Bitcoin", color:"#f7931a" },
+  { id:"ethereum", sym:"ETH", name:"Ethereum", color:"#8a9bf3" },
+  { id:"solana", sym:"SOL", name:"Solana", color:"#14f195" },
+  { id:"binancecoin", sym:"BNB", name:"BNB", color:"#f3ba2f" },
+  { id:"ripple", sym:"XRP", name:"XRP", color:"#7da2c2" },
+  { id:"cardano", sym:"ADA", name:"Cardano", color:"#3b6ce0" }
+];
+const CRYPTO_CACHE = { bitcoin:78450, ethereum:2457, solana:168.4, binancecoin:592.1, ripple:2.28, cardano:0.84 };
+function fmtPx(v){ if (v >= 1000) return v.toLocaleString("en-US",{maximumFractionDigits:0}); if (v >= 1) return v.toFixed(2); return v.toFixed(4); }
+async function fetchCrypto(announce){
+  if (announce) setState("processing", "Syncing crypto markets…");
+  try{
+    const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=" + COINS.map(c => c.id).join(",") + "&vs_currencies=usd&include_24hr_change=true");
+    const d = await r.json();
+    if (!d || !d.bitcoin) throw new Error("feed");
+    renderCrypto(COINS.map(c => ({ ...c, px: d[c.id].usd, chg: d[c.id].usd_24h_change })), false);
+    addLog("sys", `Crypto markets synced — BTC $${fmtPx(d.bitcoin.usd)}, ETH $${fmtPx(d.ethereum.usd)}.`);
+    if (announce){
+      const tops = COINS.slice(0,3).map(c => {
+        const r2 = d[c.id]; const chg = r2.usd_24h_change;
+        return `${c.name} is at ${Math.round(r2.usd).toLocaleString("en-US")} dollars, ${chg >= 0 ? "up" : "down"} ${Math.abs(chg).toFixed(1)} percent`;
+      });
+      speak(`Crypto markets, Moses. ${tops.join(". ")} over the last twenty-four hours.`);
+    }
+  }catch(e){
+    renderCrypto(COINS.map(c => ({ ...c, px: CRYPTO_CACHE[c.id], chg: null })), true);
+    addLog("warn", "CoinGecko feed unreachable — market cache engaged.");
+    if (announce) speak(`The live crypto feed is down, Moses. Last cached prices: Bitcoin around ${Math.round(CRYPTO_CACHE.bitcoin).toLocaleString("en-US")} dollars, Ethereum ${Math.round(CRYPTO_CACHE.ethereum).toLocaleString("en-US")}.`);
+  }
+}
+function renderCrypto(rows, cache){
+  $("cryptoList").innerHTML = rows.map(c => `
+    <div class="dtile">
+      <span class="dtile-ic" style="color:${c.color};border-color:${c.color}55;background:${c.color}12">${c.sym.slice(0,3)}</span>
+      <span class="dtile-sym">${c.sym} <span class="fxsub">${c.name.toUpperCase().slice(0,8)}</span></span>
+      <span class="dtile-px">$${fmtPx(c.px)}</span>
+      ${c.chg === null ? '<span class="dtile-chg fxsub">CACHE</span>'
+        : `<span class="dtile-chg ${c.chg >= 0 ? "up" : "dn"}">${c.chg >= 0 ? "▲" : "▼"} ${Math.abs(c.chg).toFixed(1)}%</span>`}
+    </div>`).join("");
+  $("cryptoTag").classList.toggle("hidden", !cache);
+  $("cryptoTime").textContent = "UPDATED " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+}
+
+/* ═══════════════ FX MODULE ═══════════════ */
+const FX_PINS = ["USD","EUR","NGN","JPY","CHF"];
+const FX_CACHE = { USD:1.27, EUR:1.18, NGN:1987, JPY:190.4, CHF:1.12 };
+let fxRates = null;
+const FX_NAME = { USD:"US Dollar", EUR:"Euro", NGN:"Nigerian Naira", JPY:"Japanese Yen", CHF:"Swiss Franc", GBP:"British Pound", CNY:"Chinese Yuan", INR:"Indian Rupee", AUD:"Australian Dollar", CAD:"Canadian Dollar", ZAR:"South African Rand", AED:"UAE Dirham", GHS:"Ghanaian Cedi", KES:"Kenyan Shilling", BTC:"Bitcoin", ETH:"Ethereum", SOL:"Solana" };
+const FX_WORD = { dollar:"USD", dollars:"USD", euro:"EUR", euros:"EUR", pound:"GBP", pounds:"GBP", quid:"GBP", naira:"NGN", yen:"JPY", franc:"CHF", francs:"CHF", rands:"ZAR", rand:"ZAR", cedi:"GHS", cedis:"GHS", shilling:"KES", shillings:"KES", rupee:"INR", rupees:"INR", yuan:"CNY", bitcoin:"BTC", btc:"BTC", bitcoins:"BTC", ethereum:"ETH", ethos:"ETH", solana:"SOL" };
+async function fetchFX(announce){
+  if (announce) setState("processing", "Polling currency markets…");
+  try{
+    const r = await fetch("https://open.er-api.com/v6/latest/GBP");
+    const d = await r.json();
+    if (d.result !== "success" || !d.rates) throw new Error("feed");
+    fxRates = d.rates;
+    renderFX(FX_PINS.map(s => ({ sym:s, val:d.rates[s] })), false);
+    addLog("sys", `FX desk synced — GBP/USD ${d.rates.USD.toFixed(3)} · GBP/NGN ${Math.round(d.rates.NGN).toLocaleString()}.`);
+    if (announce) speak(`Exchange desk, Moses. The pound stands at ${d.rates.USD.toFixed(2)} US dollars, ${d.rates.EUR.toFixed(2)} euros, and ${Math.round(d.rates.NGN).toLocaleString("en-US")} naira. Yen at ${Math.round(d.rates.JPY)}.`);
+  }catch(e){
+    fxRates = FX_CACHE;
+    renderFX(FX_PINS.map(s => ({ sym:s, val:FX_CACHE[s] })), true);
+    addLog("warn", "FX feed unreachable — last-known rates engaged.");
+    if (announce) speak("Live currency data is unreachable, Moses. Displaying last-known rates.");
+  }
+}
+function renderFX(rows, cache){
+  $("fxList").innerHTML = rows.map(r => `
+    <div class="dtile">
+      <span class="dtile-ic" style="color:#67e8f9;border-color:#67e8f955;background:#67e8f912">${r.sym.slice(0,2)}</span>
+      <span class="dtile-sym">£1 <span class="fxsub">→ ${r.sym}</span></span>
+      <span class="dtile-px">${r.val >= 100 ? r.val.toLocaleString("en-GB",{maximumFractionDigits:0}) : r.val.toFixed(2)}</span>
+      <span class="fxsub">${(FX_NAME[r.sym] || "").toUpperCase().slice(0,12)}</span>
+    </div>`).join("");
+  $("fxTag").classList.toggle("hidden", !cache);
+  $("fxTime").textContent = "UPDATED " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+}
+function fxCodesFrom(raw){
+  const m = raw.match(/(?:convert\s+)?([\d,]+(?:\.\d+)?)\s*([a-zA-Z]+)\s+(?:to|into|in)\s+([a-zA-Z]+)/i);
+  if (!m) return null;
+  const amt = parseFloat(m[1].replace(/,/g,""));
+  const norm = w => {
+    const up = w.toUpperCase();
+    if (FX_RATES_OK().rates[up] || up === "GBP") return up;
+    const lw = w.toLowerCase().replace(/s$/,"");
+    const hit = FX_WORD[lw] || FX_WORD[w.toLowerCase()];
+    return hit || null;
+  };
+  let f = norm(m[2]), t = norm(m[3]);
+  if (!f || !t) return null;
+  return { amt, from:f, to:t };
+}
+function FX_RATES_OK(){ return { rates: (fxRates || FX_CACHE) }; }
+async function convertFX(raw){
+  const q = fxCodesFrom(raw);
+  if (!q) return speak("Give me an amount and two currencies — for example: convert 250 pounds to naira.");
+  if (!fxRates) await fetchFX(false);
+  const base = { ...FX_CACHE, ...(fxRates || {}) };
+  const isCrypto = new Set(["BTC","ETH","SOL"]);
+  if (isCrypto.has(q.from) || isCrypto.has(q.to)){
+    return speak("For crypto conversions ask the markets desk — say: crypto prices.");
+  }
+  if (!base[q.from] || !base[q.to]) return speak(`I don't track ${!base[q.from] ? q.from : q.to} on the exchange desk, Moses.`);
+  const gbp = q.amt / (q.from === "GBP" ? 1 : base[q.from]);
+  const out = q.to === "GBP" ? gbp : gbp * base[q.to];
+  speak(`${q.amt.toLocaleString("en-US")} ${FX_NAME[q.from] || q.from} is approximately ${out.toLocaleString("en-US",{maximumFractionDigits:2})} ${FX_NAME[q.to] || q.to}.`);
+  addLog("sys", `FX: ${q.amt} ${q.from} ≈ ${out.toLocaleString("en-US",{maximumFractionDigits:2})} ${q.to}`);
+}
+
+/* ═══════════════ PC AUTOMATION (L1) ═══════════════ */
+async function autoMedia(){
+  try{
+    if (navigator.mediaSession && navigator.mediaSession.playbackState !== "playing"){
+      if (navigator.mediaSession.setActionHandler){ /* media keys handled natively by os */ }
+    }
+    const v = document.querySelector("video, audio");
+    if (v){ v.paused ? v.play() : v.pause(); speak("Media playback toggled."); return; }
+    speak("No media session detected on this page, Moses. In the desktop tier I will drive your system media keys directly — Spotify, VLC, everything.");
+    addLog("sys", "Automation: media-key bridge reserved for desktop tier (L2).");
+  }catch(e){ addLog("err", "Media automation blocked by the browser."); }
+}
+function autoHosts(){
+  speak("Attempting to hand off to host applications, Moses — on Windows your system will prompt for permission. Full silent control arrives with the Python tier.");
+  addLog("sys", "Host-app handoff: calculator · photo viewer · text editor (protocol schema, OS-gated).");
+  try{ window.open("calculator:"); }catch(e){}
+  setTimeout(() => { try{ window.open("ms-photos:"); }catch(e){} }, 400);
+  setTimeout(() => { try{ window.open("ms-texteditor:"); }catch(e){} }, 800);
+}
+function autoScanner(){
+  const mods = [
+    ["Weather link", !!state.weather], ["News feed", true], ["TfL network", true],
+    ["Crypto desk", true], ["FX desk", !!fxRates], ["Voice synth", TTS], ["Mic module", !!SRI],
+    ["Wake word", state.wake], ["Voice convo", true]
+  ];
+  speak(`Site scan complete. ${SITES_TABLE.length} launch routes armed, ${mods.filter(m => m[1]).length} of ${mods.length} modules green, memory banks persistent. All systems operational, Moses.`);
+  addLog("sys", "SCAN: routes " + SITES_TABLE.map(s => s[2]).join(", ") + " — ARMED. Modules: " + mods.filter(m => m[1]).map(m => m[0]).join(", ") + " — GREEN.");
+  hitChips();
+}
+function hitChips(){
+  document.querySelectorAll(".chip[data-cmd]").forEach(c => c.classList.add("flash"));
+  setTimeout(() => document.querySelectorAll(".chip").forEach(c => c.classList.remove("flash")), 2600);
+}
+async function autoBattery(){
+  if (navigator.getBattery){
+    const b = await navigator.getBattery();
+    const pct = Math.round(b.level*100);
+    speak(b.charging ? `Battery at ${pct} percent and charging. Core stable.` : `Battery at ${pct} percent${pct < 25 ? ". I recommend finding a charger soon, Moses." : ", discharging normally."}`);
+    addLog("sys", `Power cell: ${pct}% ${b.charging ? "· CHARGING" : "· DISCHARGING"}.`);
+    return;
+  }
+  speak("This browser does not expose a battery sensor, Moses. The desktop tier will read your power cell directly.");
+}
+async function autoClipboard(){
+  if (!navigator.clipboard || !navigator.clipboard.readText) return speak("Clipboard access is restricted here, Moses.");
+  try{
+    const t = await navigator.clipboard.readText();
+    if (!t) return speak("Your clipboard is empty, Moses.");
+    const short = t.length > 160 ? t.slice(0,160) + "…" : t;
+    speak(`Your clipboard contains: ${t.length > 120 ? short : t}`);
+    addLog("sys", "CLIPBOARD → " + short);
+  }catch(e){ addLog("warn","Clipboard read denied — click the page and grant permission when prompted."); speak("Clipboard permission denied by the browser, Moses. Click once on the page and try again."); }
+}
+function autoPing(){
+  const t0 = performance.now();
+  fetch("https://api.coingecko.com/api/v3/ping", { cache:"no-store" })
+    .then(() => speak(`Network latency ${Math.round(performance.now() - t0)} milliseconds to the market relay. Clean signal, Moses.`))
+    .catch(e => speak("The latency probe failed — outbound network may be restricted here."));
+}
+
+/* ═══════════════ BRIEFINGS ═══════════════ */
+function summarizeWx(){
+  if (state.weather) return `${Math.round(state.weather.main.temp)} degrees and ${state.weather.weather[0].description} in ${state.weather.name}`;
+  const el = $("wxTemp");
+  if (el && el.textContent.trim() !== "--°") return `${el.textContent.replace("°","")} degrees in ${$("wxCity").textContent.split(",")[0]}`;
+  return "weather uplink pending — say weather report for the latest";
+}
+function summarizeNews(){
+  const tops = [...document.querySelectorAll("#newsList .news-item")].slice(0,3).map(a => a.querySelector("div div span")?.textContent.trim() || a.textContent.trim()).filter(Boolean);
+  return tops.length ? tops : null;
+}
+async function morningBriefing(){
+  setState("processing", "Compiling your morning briefing…");
+  addLog("sys", "MORNING BRIEF — assembling feeds: weather, diary, transit, reminders, tasks, deadlines, markets.");
+  try{ if (!state.weather) await fetchWeather(false); }catch(e){}
+  try{ if (!fxRates) await fetchFX(false); }catch(e){}
+  const d = new Date();
+  const dateStr = d.toLocaleDateString("en-US",{weekday:"long", month:"long", day:"numeric"});
+  const parts = [`Good morning, Moses. Today is ${dateStr}. Here is your briefing.`];
+  parts.push(`Outside it is ${summarizeWx()}.`);
+  pruneAppts();
+  if (appts.length){ const a = appts[0]; const ad = new Date(a.when); parts.push(`Your first engagement: ${a.title} at ${ad.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}.`); }
+  else parts.push("Your diary is clear — a blank slate.");
+  if (rems.length) parts.push(`Don't forget: ${rems.slice(0,3).map(r => r.text).join(". ")}.`);
+  const openT = tasks.filter(t => !t.done);
+  if (openT.length){
+    const rank = { high:0, med:1, low:2 };
+    const tops = [...openT].sort((a,b) => rank[a.prio] - rank[b.prio]).slice(0,3);
+    parts.push(`${openT.length} task${openT.length === 1 ? "" : "s"} on the board${tops.some(t => t.prio === "high") ? " — the urgent ones are " + tops.filter(t => t.prio === "high").map(t => t.title).join(" and ") : ""}.`);
+  }
+  const nearD = upcomingDls().filter(x => x.days >= 0 && x.days <= 7);
+  if (nearD.length) parts.push(`Deadlines closing in: ${nearD.slice(0,3).map(x => `${x.title}, ${daysLabel(x.days).toLowerCase()}`).join(". ")}.`);
+  if (fxRates) parts.push(`On the markets: the pound trades at ${fxRates.USD.toFixed(2)} dollars and ${Math.round(fxRates.NGN).toLocaleString("en-US")} naira this morning.`);
+  const tops = summarizeNews();
+  if (tops) parts.push(`Leading the news wires: ${tops[0]}.`);
+  parts.push(`All routine channels are green. Say — end of day report — when you are ready to wind down, or — that's all — to release me.`);
+  speak(parts.join(" "));
+}
+async function endOfDayReport(){
+  setState("processing", "Compiling your end of day report…");
+  addLog("sys", "END-OF-DAY REPORT — tallying completed tasks, tomorrow's diary and markets close.");
+  try{ if (!fxRates) await fetchFX(false); }catch(e){}
+  const parts = [`Good evening, Moses. End of day report coming up.`];
+  const done = tasks.filter(t => t.done), open = tasks.filter(t => !t.done);
+  if (done.length) parts.push(`Today you completed ${done.length} task${done.length === 1 ? "" : "s"}: ${done.slice(0,3).map(t => t.title).join(", ")}. ${open.length ? open.length + " remain on the board." : "The board is clean."}`);
+  else if (open.length) parts.push(`No tasks were closed out today — ${open.length} still outstanding, led by ${open[0].title}.`);
+  else parts.push("The task board has remained empty all day.");
+  const tomorrowAppts = appts.filter(a => { const ad = new Date(a.when); const t = new Date(); t.setDate(t.getDate() + 1); return ad.getDate() === t.getDate() && ad.getMonth() === t.getMonth(); });
+  if (tomorrowAppts.length) parts.push(`Tomorrow begins with ${tomorrowAppts.map(a => a.title + " at " + new Date(a.when).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})).join(" and ")}.`);
+  if (rems.length) parts.push(`For tomorrow, remember to: ${rems.slice(0,3).map(r => r.text).join(". ")}.`);
+  const nearD = upcomingDls().filter(x => x.days >= 0 && x.days <= 3);
+  if (nearD.length) parts.push(`Deadline radar: ${nearD.map(x => `${x.title} — ${daysLabel(x.days).toLowerCase()}`).join(". ")}.`);
+  if (fxRates) parts.push(`Markets close with the pound at ${fxRates.USD.toFixed(2)} US dollars and ${Math.round(fxRates.NGN).toLocaleString("en-US")} naira.`);
+  parts.push(`Powering routines down on your mark. Sleep well, Moses.`);
+  speak(parts.join(" "));
+}
+
+/* ═══════════════ ALERT MATRIX ═══════════════ */
+let timers = [];
+function cdFmt(ms){
+  if (ms <= 0) return "DUE";
+  const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor(s/60)%60, ss = s%60;
+  return h ? `${h}H ${String(m).padStart(2,"0")}M` : m ? `${m}M ${String(ss).padStart(2,"0")}S` : `${ss}S`;
+}
+function sayDur(ms){
+  const s = Math.round(ms/1000), h = Math.floor(s/3600), m = Math.ceil(s/60%60);
+  if (s < 60) return `${s} second${s===1?"":"s"}`;
+  if (h) return `${h} hour${h===1?"":"s"}${m%60 ? ` and ${m%60} minutes` : ""}`;
+  return `${Math.ceil(s/60)} minute${Math.ceil(s/60)===1?"":"s"}`;
+}
+function saveAlerts(){
+  try{ localStorage.setItem("jarvis_alerts", JSON.stringify(timers.map(({id,label,fireAt}) => ({id,label,fireAt})))); }catch(e){}
+  renderAlerts();
+}
+function renderAlerts(){
+  const box = $("alertList");
+  $("alertCount").textContent = timers.length + " ARMED";
+  if (!timers.length){
+    box.innerHTML = '<div class="font-mono2 text-[10px] text-cyan-600/80 px-1 py-3 tracking-widest leading-relaxed">NO ALERTS ARMED — SAY “SET ALERT IN 10 MINUTES”</div>';
+    return;
+  }
+  box.innerHTML = timers.map(t => `
+    <li class="row-item">
+      <i data-lucide="alarm-clock" class="w-3.5 h-3.5 text-cyan-300/90 flex-none"></i>
+      <div class="flex-1 min-w-0">
+        <div class="font-mono2 text-[11px] text-cyan-50 truncate">${esc(t.label)}</div>
+        <div class="font-mono2 text-[9px] text-cyan-500/90 tracking-widest">FIRES ${new Date(t.fireAt).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}${new Date(t.fireAt).getDate() !== new Date().getDate() ? " · " + new Date(t.fireAt).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}).toUpperCase() : ""}</div>
+      </div>
+      <span class="count-pill warn" data-acd="${t.id}">--</span>
+      <button class="row-del" data-aldel="${t.id}" title="Disarm"><i data-lucide="x" class="w-3 h-3"></i></button>
+    </li>`).join("");
+  lucide.createIcons();
+  tickAlerts();
+}
+function tickAlerts(){
+  timers.forEach(t => {
+    const el = document.querySelector(`[data-acd="${t.id}"]`);
+    if (el) el.textContent = cdFmt(t.fireAt - Date.now());
+  });
+}
+function armAlert(t){
+  const delay = t.fireAt - Date.now();
+  if (delay <= 0) return;
+  t.handle = setTimeout(() => fireAlert(t.id), Math.min(delay, 2147000000));
+}
+function fireAlert(id){
+  const t = timers.find(x => x.id === id); if (!t) return;
+  timers = timers.filter(x => x.id !== id);
+  saveAlerts();
+  for (let i = 0; i < 4; i++){ beep(1245, .11, "square", .15, i*.22); beep(831, .11, "square", .12, i*.22 + .11); }
+  notify("J.A.R.V.I.S. · ALERT", new Date(t.fireAt).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}) + " — " + t.label);
+  addLog("sys", `ALERT FIRED — "${t.label}"`);
+  speak(`Alert, Moses — ${t.label}. The time is ${new Date(t.fireAt).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}.`);
+}
+function loadAlerts(){
+  try{ timers = JSON.parse(localStorage.getItem("jarvis_alerts") || "[]").filter(t => t.fireAt > Date.now()); }catch(e){ timers = []; }
+  timers.forEach(armAlert);
+  renderAlerts();
+}
+function setAlert(raw){
+  const low = raw.toLowerCase().replace(/[.!?]+$/,"");
+  let label = null;
+  const lm = low.match(/\b(?:to|about)\s+([a-z0-9 '’,-]{2,50})\s*$/);
+  if (lm && !/\d/.test(lm[1])) label = lm[1].trim();
+  let fireAt = null, kind = "timer";
+  const rel = low.match(/\b(?:in|for)\s+(\d+)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\b/);
+  if (rel){
+    const n = +rel[1], u = rel[2];
+    fireAt = Date.now() + n * (/h/.test(u[0]) ? 3600000 : /^s/.test(u) ? 1000 : 60000);
+    if (!label) label = `Timer · ${n} ${u.startsWith("sec") || u[0]==="s" ? "seconds" : u[0]==="h" ? "hours" : "minutes"}`;
+  } else {
+    const tm = low.match(/\b(?:at|for|around|by)\s+(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\b/i) || low.match(/\b(\d{1,2})(?::(\d{2}))\s*(a\.?m\.?|p\.?m\.?)?\b/i);
+    if (tm){
+      kind = "alarm";
+      let h = +tm[1]; const min = +(tm[2] || 0); const ap = (tm[3] || "").toLowerCase();
+      if (ap){ h = h % 12 + (ap.startsWith("p") ? 12 : 0); }
+      const now = new Date();
+      const mk = (addDays, hour) => { const d = new Date(now); d.setDate(d.getDate() + addDays); d.setHours(hour, min, 0, 0); return d.getTime(); };
+      const cands = [];
+      if (ap){ cands.push(mk(has(low,"tomorrow") ? 1 : 0, h), mk(1, h), mk(0, h)); }
+      else if (h <= 12){ cands.push(mk(has(low,"tomorrow") ? 1 : 0, h), mk(has(low,"tomorrow") ? 1 : 0, h + 12), mk(1, h), mk(1, h + 12)); }
+      else if (h < 24){ cands.push(mk(has(low,"tomorrow") ? 1 : 0, h), mk(1, h)); }
+      fireAt = cands.find(t => t > Date.now()) || null;
+      if (!label) label = kind === "alarm" ? "Wake-up call" : "Alarm";
+    }
+  }
+  if (!fireAt) return speak("When should the alert fire, Moses? For example: set an alert in 10 minutes — or: set an alarm for 7 AM.");
+  const t = { id: Date.now() + Math.floor(Math.random()*999), label: label.charAt(0).toUpperCase() + label.slice(1), fireAt };
+  timers.push(t); timers.sort((a,b) => a.fireAt - b.fireAt);
+  armAlert(t); saveAlerts(); affirm();
+  const d = new Date(fireAt);
+  const when = d.toLocaleTimeString("en-US",{hour:"numeric", minute:"2-digit"});
+  const day = d.getDate() !== new Date().getDate() ? " tomorrow" : "";
+  addLog("sys", `Alert armed — "${t.label}" fires ${when}${day} (in ${cdFmt(fireAt - Date.now()).toLowerCase()}).`);
+  speak(`Alert armed for ${when}${day}, Moses — that's in ${sayDur(fireAt - Date.now())}. Target: ${t.label}.`);
+}
+function disarmAlert(raw, all){
+  if (!timers.length) return speak("No alerts are armed, Moses.");
+  if (all || has(raw.toLowerCase(),"all")){
+    timers.forEach(t => clearTimeout(t.handle)); timers = []; saveAlerts(); chirpLo();
+    return speak("All alerts disarmed, Moses.");
+  }
+  const frag = (raw.match(/(?:cancel|clear|delete|remove|disarm)\s+(?:the\s+)?(?:next\s+)?(?:alert|alarm|timer)\s*(?:to|for|about|named)?\s*(.*)/i) || [,""])[1].trim().toLowerCase();
+  const hit = frag ? timers.find(t => t.label.toLowerCase().includes(frag)) : timers[0];
+  if (!hit) return speak("I couldn't find that alert on the matrix, Moses.");
+  clearTimeout(hit.handle); timers = timers.filter(t => t.id !== hit.id); saveAlerts(); chirpLo();
+  speak(`Alert disarmed — ${hit.label}.`);
+}
+function readAlerts(){
+  if (!timers.length) return speak("The alert matrix is empty, Moses. Try: set an alert in twenty minutes.");
+  speak(`${timers.length} alert${timers.length===1?"":"s"} armed. ${timers.slice(0,4).map(t => `${t.label} — fires in ${sayDur(t.fireAt - Date.now())}`).join(". ")}.`);
+  addLog("sys", "Alerts: " + timers.map(t => `${t.label} (T-${cdFmt(t.fireAt - Date.now())})`).join(" · "));
+}
+
+/* ═══════════════ MIC DIAGNOSTIC ═══════════════ */
+async function probe(url){
+  const t0 = performance.now();
+  try{ await fetch(url, { mode:"no-cors", cache:"no-store" }); return Math.round(performance.now() - t0); }
+  catch(e){ return null; }
+}
+async function runMicTest(){
+  addLog("sys", "Voice uplink diagnostic initiated…");
+  ensureAudio();
+  const btn = $("micTest");
+  btn.innerHTML = '<i data-lucide="loader-circle"></i>Testing'; lucide.createIcons();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    addLog("err", "Media inputs unavailable — this context is not secure (needs HTTPS or localhost).");
+    speak("Microphone access is unavailable in this context, Moses — the page must be served over H-T-T-P-S or localhost.");
+    btn.innerHTML = '<i data-lucide="activity"></i>Mic Test'; lucide.createIcons(); return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const src = state.audioCtx.createMediaStreamSource(stream);
+    const an = state.audioCtx.createAnalyser(); an.fftSize = 512;
+    src.connect(an);
+    const buf = new Uint8Array(an.frequencyBinCount);
+    let peak = 0;
+    await new Promise(res => {
+      const t0 = performance.now();
+      const scan = () => {
+        an.getByteTimeDomainData(buf);
+        for (const v of buf) peak = Math.max(peak, Math.abs(v - 128));
+        performance.now() - t0 < 1400 ? requestAnimationFrame(scan) : res();
+      };
+      scan();
+    });
+    stream.getTracks().forEach(t => t.stop());
+    addLog("sys", `Diagnostic: hardware OK — signal peak ${peak}/128.`);
+    const g = await probe("https://www.google.com/favicon.ico");
+    const s = await probe("https://speech.googleapis.com/");
+    addLog("sys", `Uplink probes — google.com: ${g === null ? "BLOCKED" : g + "ms"} · Chrome speech host: ${s === null ? "BLOCKED" : s + "ms"}.`);
+    const hwOK = peak > 3, netOK = g !== null, svcOK = s !== null;
+    if (!netOK) speak(`Hardware is ${hwOK ? "confirmed" : "silent"}, Moses, but there is no route to Google at all — you are offline or behind a strict firewall. Reconnect, then run the test again.`);
+    else if (!svcOK) speak(`Your microphone ${hwOK ? "and internet are both confirmed" : "is silent — check the input first"}, Moses, but this network blocks Chrome's speech service specifically. Voice cannot run in this environment — the console stays fully operational, and the desktop tier will carry an offline voice engine.`);
+    else if (hwOK) speak("Full voice chain confirmed, Moses — hardware, network and speech host all green. Tap the core and speak freely.");
+    else speak("The microphone is connected but silent, Moses — check your input volume or hardware mute. The network chain itself is green.");
+  }catch(e){
+    addLog("err", "Diagnostic failed — permission denied or no input device present.");
+    speak("The mic diagnostic failed, Moses — permission was denied or no input device exists. Use the console meanwhile.");
+  }
+  btn.innerHTML = '<i data-lucide="activity"></i>Mic Test'; lucide.createIcons();
+}
+
+/* ═══════════════ LOCAL SENTRY (data.police.uk) ═══════════════ */
+const CRIME_LABEL = c => c.replace(/-/g," ").replace(/\b\w/g, x => x.toUpperCase());
+const POLICE_CACHE = {
+  total: 2145, month: "Archive month", area: "Central London",
+  top: [["Anti Social Behaviour",612],["Violence And Sexual Offences",486],["Theft From The Person",279],["Shoplifting",188],["Burglary",96],["Other Theft",90]]
+};
+function policeRefMonth(lag){ const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - lag); return d; }
+async function fetchPolice(announce){
+  if (announce) setState("processing", "Querying the police data vault…");
+  try{
+    let lat = state.lat, lon = state.lon, area = "your position";
+    if (lat == null){ const c = await getPos(); if (c){ lat = c.latitude; lon = c.longitude; } }
+    if (lat == null){ lat = 51.5074; lon = -0.1278; area = "Central London"; }
+    let data = null, used = null;
+    for (const lag of [3, 4]){
+      const d = policeRefMonth(lag);
+      const m = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      const r = await fetch(`https://data.police.uk/api/crimes-street/all-crime?lat=${lat.toFixed(4)}&lng=${lon.toFixed(4)}&date=${m}`);
+      if (r.ok){ const j = await r.json(); if (Array.isArray(j)){ data = j; used = d; break; } }
+    }
+    if (!data) throw new Error("vault");
+    const monthName = used.toLocaleDateString("en-GB", { month:"long", year:"numeric" });
+    const counts = {};
+    data.forEach(c => { const k = CRIME_LABEL(c.category || "other-crime"); counts[k] = (counts[k] || 0) + 1; });
+    const top = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 6);
+    renderPolice({ total: data.length, month: monthName, area, top }, false);
+    addLog("sys", `Police vault — ${data.length.toLocaleString("en-GB")} street incidents analysed for ${monthName} (${area}).`);
+    if (announce){
+      if (!top.length) speak(`Remarkably quiet, Moses — zero street incidents on record for ${used.toLocaleDateString("en-GB",{month:"long"})} near ${area}.`);
+      else speak(`Local sentry report for ${area}. ${data.length.toLocaleString("en-GB")} incidents were recorded in ${monthName} within roughly one kilometre. Leading categories: ${top.slice(0,3).map(([k,v]) => `${k.toLowerCase()}, with ${v}`).join(". ")}.`);
+    }
+  }catch(e){
+    renderPolice(POLICE_CACHE, true);
+    addLog("warn", "Police data vault unreachable — archive cache engaged.");
+    if (announce) speak("The police data vault is not answering, Moses. Displaying the last archive on record.");
+  }
+}
+function renderPolice(d, cache){
+  $("policeTotal").textContent = d.total.toLocaleString("en-GB");
+  $("policeArea").textContent = d.area.toUpperCase();
+  $("policeMonth").textContent = d.month.toUpperCase();
+  const max = d.top.length ? d.top[0][1] : 1;
+  $("policeList").innerHTML = d.top.length ? d.top.map(([k,v]) => `
+    <div class="mb-[7px]">
+      <div class="flex justify-between font-mono2 text-[10px] tracking-widest text-cyan-100/90 uppercase"><span>${k}</span><span class="text-cyan-400">${v}</span></div>
+      <div class="pgbar mt-1"><div class="pgfill" style="width:${Math.max(6, Math.round(v/max*100))}%"></div></div>
+    </div>`).join("")
+    : '<div class="font-mono2 text-[10px] text-emerald-300/90 tracking-widest py-2">ZERO INCIDENTS ON RECORD — SECTOR CLEAR</div>';
+  $("policeTag").classList.toggle("hidden", !cache);
+  $("policeTime").textContent = "UPDATED " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+}
+
+/* ═══════════════ UKVI LIAISON ═══════════════ */
+const UKVI = {
+  prove:   "https://www.gov.uk/view-prove-immigration-status",
+  evisa:   "https://www.gov.uk/get-access-evisa",
+  apply:   "https://www.gov.uk/apply-uk-visa",
+  times:   "https://www.gov.uk/guidance/visa-decision-waiting-times-applications-outside-the-uk",
+  contact: "https://www.gov.uk/contact-ukvi-inside-outside-uk",
+  hub:     "https://www.gov.uk/browse/visas-immigration"
+};
+function ukviRoute(cmd){
+  let url = UKVI.hub, line = "Opening the UK Visas and Immigration hub on GOV.UK, Moses.";
+  if (/(decision|waiting|takes?|long|process)/.test(cmd) && has(cmd,"visa")){
+    url = UKVI.times;
+    line = "Current Home Office service standards, Moses: three weeks for work, study and visit visas from outside the UK — twelve weeks for family routes — eight weeks inside the UK, and around six months for settlement. Priority returns a decision in five working days, super-priority the next working day. Opening the official waiting-times guide.";
+  }
+  else if (/(prove|share code|view my|check my|immigration status)/.test(cmd)){
+    url = UKVI.prove;
+    line = "Opening view and prove your immigration status. Generate a share code there to prove your right to work or rent, Moses.";
+  }
+  else if (/apply/.test(cmd)){
+    url = UKVI.apply;
+    line = "Opening the UK visa application portal. The decision clock starts at identity verification, so have your documents ready.";
+  }
+  else if (has(cmd,"evisa") || has(cmd,"e visa") || has(cmd,"brp") || has(cmd,"residence permit")){
+    url = UKVI.evisa;
+    line = "Opening eVisa access — your UKVI account has replaced the physical residence permit.";
+  }
+  else if (/(contact|call|chase|phone)/.test(cmd)){
+    url = UKVI.contact;
+    line = "Opening the UKVI contact directory. I cannot access your case file directly, Moses — UKVI accounts require your personal sign-in.";
+  }
+  openTab(url, "UK Visas & Immigration");
+  speak(line);
+}
+
+/* ═══════════════ COMMAND PROCESSOR ═══════════════ */
+function processCommand(rawInput){
+  let raw = rawInput.trim().replace(/^(hey |ok |okay )?jarvis[,.]?\s*/i, "");
+  if (!raw) raw = rawInput.trim();
+  const cmd = raw.toLowerCase().replace(/[.!?]+$/,"").replace(/\s+/g," ");
+  addLog("sys", `Parsing directive: "${raw}"`);
+
+  /* — save word (checked before generic matchers) — */
+  if (has(cmd,"save") && (has(cmd,"word") || has(cmd,"document") || has(cmd,"file"))) return saveDoc();
+
+  /* — close word (checked before shutdown so "exit word" never powers down) — */
+  if (/(close|closes|exit|quit)\s+(microsoft )?(word|the document)/.test(cmd)) return closeWord();
+
+  /* — shutdown / exit — */
+  if (/(shut ?down|power off|exit|quit|goodbye|good bye|go to sleep|turn yourself off)/.test(cmd)) return shutdown();
+
+  /* — screenshots — */
+  if (has(cmd,"screenshot") || has(cmd,"screen shot") || has(cmd,"capture the screen") || has(cmd,"capture screen")) return screenshot();
+
+  /* — type inside word / dictate — */
+  if (/^(please )?(type|write|dictate)\b/.test(cmd)){
+    let text = raw
+      .replace(/^(please )?(type|write|dictate)\s*/i,"")
+      .replace(/(inside|in|into)\s+(microsoft )?word\s*/i,"")
+      .replace(/[.!?]+$/,"").trim();
+    if (text.length < 2)
+      text = "The quick brown fox jumps over the lazy dog. — dictated by J.A.R.V.I.S., Mark I voice core.";
+    addLog("sys","HoloWord dictation engaged.");
+    speak("Typing into the document now.");
+    setTimeout(() => typeIntoDoc(text), 700);
+    return;
+  }
+
+  /* — weather — */
+  if (has(cmd,"weather") || has(cmd,"forecast") || has(cmd,"temperature")) return fetchWeather(true);
+
+  /* — news — */
+  if (has(cmd,"news") || has(cmd,"headlines")) return fetchNews(true);
+
+  /* — shopping list — */
+  if (/^(?:please )?add .+ to (the |my )?(shopping )?list/.test(cmd)){
+    const m = raw.replace(/^(please )?add /i,"").replace(/ to (the |my )?(shopping )?list.*/i,"");
+    return addShopping(splitList(m));
+  }
+  if (/^(?:please )?(remove|delete|take) .+ (from|off) (the |my )?(shopping )?list/.test(cmd)){
+    const m = raw.replace(/^(please )?(remove|delete|take) /i,"").replace(/ (from|off) (the |my )?(shopping )?list.*/i,"");
+    return removeShopping(splitList(m));
+  }
+  if (/(clear|empty|wipe) (the |my )?(shopping )?list/.test(cmd) || (has(cmd,"clear") && has(cmd,"shopping"))) return clearShopping();
+  if (/(^|\s)(bought|picked up) .+/.test(cmd)){
+    const m = raw.replace(/.*(?:bought|picked up)\s+/i,"");
+    return markBought(splitList(m));
+  }
+  if (has(cmd,"shopping")) return readShopping();
+
+  /* — appointments — */
+  if (/(make|schedule|book|create|set( up)?)( me)?( an| a)? (appointment|meeting)/.test(cmd)) return scheduleAppointment(raw, true);
+  if (/(cancel|delete|remove) (the |my )?(appointment|meeting)/.test(cmd)){
+    if (appts.length){ const gone = appts.shift(); saveAppts(); return speak(`Cancelled: ${gone.title}.`); }
+    return speak("There are no appointments to cancel, Moses.");
+  }
+  if (has(cmd,"appointment") || has(cmd,"my schedule") || has(cmd,"my diary") || has(cmd,"my meetings")) return readAppts();
+
+  /* — london transport — */
+  if (has(cmd,"london transport") || has(cmd,"london transit") || /\btube\b/.test(cmd) || has(cmd,"underground") || /\btfl\b/.test(cmd) || has(cmd,"train status") || has(cmd,"transport in london") || has(cmd,"transport for london")) return fetchTfL(true);
+
+  /* — alerts / timers — */
+  if (/^(?:please )?(set|create|start|arm)( an? )?(new )?(alert|alarm|timer)/.test(cmd) || /^(wake me( up)?|alert me)/.test(cmd) || /^remind (moses |me )?(in \d+\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\b)/.test(cmd)) return setAlert(raw);
+  if (/^(?:please )?(cancel|clear|delete|remove|disarm)( all)?( the| my)? ?(next )?(alert|alarm|timer)/.test(cmd)) return disarmAlert(raw, /all/.test(cmd));
+  if (/(what|any|which|list|show|read).*(alert|alarm|timer)/.test(cmd) || (has(cmd,"alert") && has(cmd,"set"))) return readAlerts();
+
+  /* — reminders — */
+  if (/^(?:please )?(forget|clear|delete|remove) (?:the |all )?(?:my )?reminder/.test(cmd)){
+    if (/clear|all/.test(cmd) && rems.length > 1){ rems = []; saveRems(); chirpLo(); return speak("All reminders erased, Moses. Memory banks clear."); }
+    return removeReminders(raw);
+  }
+  if (/^(?:please )?remind (moses |me )to /.test(cmd)) return addReminder(raw);
+  if (has(cmd,"reminder") || has(cmd,"what am i forgetting") || has(cmd,"forgetting")) return readReminders();
+
+  /* — tasks — */
+  if (/^(?:please )?(complete|finish) (the )?task/.test(cmd) || /^mark .* as done/.test(cmd) || /^done task/.test(cmd) || (/^complete/.test(cmd) && tasks.length)) return completeTask(raw);
+  if (/^(?:please )?add (a )?(new )?task/.test(cmd)) return addTask(raw);
+  if (/(what|any)( tasks?)? (do i|need|needs)|tasks? (do i need|that need|to (do|complete|finish))|my task/.test(cmd) || has(cmd,"todo") || has(cmd,"to-do") || has(cmd,"to do list")) return readTasks();
+
+  /* — deadlines — */
+  if (/^(?:please )?add (a )?deadline/.test(cmd)) return addDeadline(raw);
+  if (has(cmd,"deadline")) return readDeadlines();
+
+  /* — crypto — */
+  if (has(cmd,"crypto") || has(cmd,"bitcoin") || has(cmd,"ethereum") || has(cmd,"crypto price") || has(cmd,"coin market")) return fetchCrypto(true);
+
+  /* — exchange rates — */
+  if (/^convert /.test(cmd) || (/\d/.test(cmd) && /(?:to|into)\s+[a-z]{3,}/.test(cmd) && /(dollar|euro|pound|naira|yen|franc|usd|eur|gbp|ngn|rand|cedi|shilling|rupee|yuan)/.test(cmd))) return convertFX(raw);
+  if (has(cmd,"exchange rate") || has(cmd,"currency") || has(cmd,"forex") || has(cmd,"how much is the pound") || has(cmd,"pound to")) return fetchFX(true);
+
+  /* — briefings — */
+  if (has(cmd,"morning briefing") || has(cmd,"daily briefing") || has(cmd,"daily brief") || (has(cmd,"brief me") && !has(cmd,"end"))) return morningBriefing();
+  if (has(cmd,"end of day") || has(cmd,"evening report") || has(cmd,"evening briefing") || has(cmd,"wrap up") || has(cmd,"goodnight report")) return endOfDayReport();
+
+  /* — local sentry / police data — */
+  if (has(cmd,"crime") || has(cmd,"police") || /how safe|safe is (it|the area|my area)|sentry report/.test(cmd)) return fetchPolice(true);
+
+  /* — uk visas & immigration — */
+  if (has(cmd,"visa") || has(cmd,"ukvi") || has(cmd,"immigration") || has(cmd,"home office") || has(cmd,"share code") || has(cmd,"settlement scheme") || has(cmd,"residence permit")) return ukviRoute(cmd);
+
+  /* — pc automation — */
+  if (has(cmd,"media") || has(cmd,"play") || has(cmd,"pause")) return autoMedia();
+  if (has(cmd,"host app") || has(cmd,"launch host") || /open (the )?(calculator app|photos app|text editor)/.test(cmd)) return autoHosts();
+  if (has(cmd,"site scanner") || has(cmd,"scan the site") || has(cmd,"scan site") || has(cmd,"open host scanner")) return autoScanner();
+  if (has(cmd,"battery")) return autoBattery();
+  if (has(cmd,"clipboard") || /(paste|read)( the )?clip/.test(cmd)) return autoClipboard();
+  if (has(cmd,"ping") || has(cmd,"latency") || has(cmd,"connection speed")) return autoPing();
+  if (has(cmd,"automation") || has(cmd,"automate")) return speak("Automation tier one online: media playback, host-app handoff, site scanning, battery, clipboard and network diagnostics. Level two — full operating system control — binds in the Python desktop build, Moses.");
+
+  /* — time / date — */
+  if (has(cmd,"time") && !has(cmd,"uptime")){
+    const t = new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+    return speak(`The time is ${t}, sir.`);
+  }
+  if (has(cmd,"date") || has(cmd,"what day") || has(cmd,"today")){
+    const d = new Date().toLocaleDateString("en-US",{weekday:"long", month:"long", day:"numeric", year:"numeric"});
+    return speak(`Today is ${d}.`);
+  }
+
+  /* — volume — */
+  if (has(cmd,"volume") || has(cmd,"mute") || has(cmd,"louder") || has(cmd,"quieter")){
+    if (has(cmd,"unmute")){ state.muted = false; setVol(state.vol||60,true); return speak("Audio restored."); }
+    if (has(cmd,"mute")){ state.muted = true; updateMuteBtn(); addLog("sys","Audio muted."); return speak("Muting audio output."); }
+    const m = cmd.match(/(\d{1,3})/);
+    if (m){ setVol(+m[1]); return speak(`Volume set to ${state.vol} percent.`); }
+    if (has(cmd,"max") || has(cmd,"full")){ setVol(100); return speak("Volume at maximum."); }
+    if (has(cmd,"half")){ setVol(50); return speak("Volume at fifty percent."); }
+    if (/(up|increase|raise|louder)/.test(cmd)){ setVol(state.vol+10); return speak(`Volume increased to ${state.vol} percent.`); }
+    if (/(down|decrease|lower|quieter)/.test(cmd)){ setVol(state.vol-10); return speak(`Volume decreased to ${state.vol} percent.`); }
+    return speak(`Volume is currently at ${state.vol} percent.`);
+  }
+
+  /* — open word — */
+  if (has(cmd,"open") && has(cmd,"word")) return openWord();
+
+  /* — open claude — */
+  if (has(cmd,"claude")){
+    openTab("https://claude.ai", "Claude AI");
+    return speak("Opening Claude. The full AI conversation core arrives in phase two.");
+  }
+
+  /* — folders (simulated bridge) — */
+  if (has(cmd,"folder") || has(cmd,"downloads") || has(cmd,"documents folder") || has(cmd,"open desktop")){
+    const f = has(cmd,"download") ? "Downloads" : has(cmd,"document") ? "Documents" : has(cmd,"desktop") ? "Desktop" : has(cmd,"picture") ? "Pictures" : "Home";
+    addLog("warn", `File-system bridge (${f}) will bind natively in the desktop build — simulated here.`);
+    return speak(`Opening the ${f} folder. In this browser build the file system bridge is simulated, sir.`);
+  }
+
+  /* — websites — */
+  if (has(cmd,"open") || has(cmd,"launch") || has(cmd,"go to")){
+    for (const [key,url,label] of SITES_TABLE){
+      if (has(cmd,key) && !(key==="google" && has(cmd,"search"))){ openTab(url,label); return speak(`Opening ${label}.`); }
+    }
+    if (has(cmd,"notepad") || has(cmd,"notes")){ openDoc(); speak("Opening the notepad."); return; }
+    if (has(cmd,"calculator")){ addLog("sys","Calculator bridged — simulated in browser build."); return speak("Launching the calculator. This module binds natively in the desktop build, sir."); }
+    return speak("Which application or website shall I open, sir?");
+  }
+
+  /* — web search — */
+  if (/^(search|google|look up|find|browse)/.test(cmd) || has(cmd,"search for")){
+    const q = raw.replace(/^(please )?(search (the web )?(for )?|google( for)? |look up |find |browse for )/i,"").trim();
+    if (!q || q.toLowerCase() === cmd) return speak("What would you like me to search for?");
+    openTab("https://www.google.com/search?q=" + encodeURIComponent(q), "Web search");
+    return speak(`Searching the web for ${q}.`);
+  }
+
+  /* — wake word control — */
+  if (has(cmd,"wake word")) return speak(`The wake word protocol is currently ${state.wake ? "armed" : "disarmed"}, sir. Toggle it in the systems panel.`);
+
+  /* — system status — */
+  if (has(cmd,"status") || has(cmd,"diagnostic") || has(cmd,"system check")){
+    const wx = state.weather ? `${Math.round(state.weather.main.temp)} degrees in ${state.weather.name}` : "weather uplink pending";
+    return speak(`All core systems nominal. Microphone ${SRI ? "ready" : "offline"}, voice synthesis ${state.voiceOn ? "active" : "muted"}, wake word ${state.wake ? "armed" : "standby"}, volume at ${state.vol} percent, and ${wx}.`);
+  }
+
+  /* — identity — */
+  if (has(cmd,"who are you") || has(cmd,"your name") || has(cmd,"introduce yourself"))
+    return speak("I am Jarvis — Just A Rather Very Intelligent System — Mark One voice command core, online and at your service.");
+
+  /* — joke — */
+  if (has(cmd,"joke")){
+    const j = [
+      "I would tell you a UDP joke, but you might not get it, sir.",
+      "The recalibration of the Mark Seven was rather uplifting — quite literally.",
+      "I asked the suit for a status report. It said it needed a holiday."
+    ];
+    return speak(j[Math.floor(Math.random()*j.length)]);
+  }
+
+  /* — thanks — */
+  if (has(cmd,"thank")) return speak("Always a pleasure, sir.");
+
+  /* — hello — */
+  if (/^(hi|hello|hey|greetings)\b/.test(cmd) && !has(cmd,"jarvis"))
+    return speak("Hello, sir. How may I assist you?");
+
+  /* — stop listening — */
+  if (has(cmd,"stop listening") || has(cmd,"standby") || has(cmd,"that's all")){
+    state.convo = false;
+    if (state.wake){ state.wakeUntil = 0; speak("Standing by, Moses — say hey Jarvis when you need me."); }
+    else { speak("Standing by, Moses. Tap the core whenever you need me."); setTimeout(stopListening, 1400); }
+    return;
+  }
+
+  /* — help — */
+  if (has(cmd,"help") || has(cmd,"commands") || has(cmd,"what can you do")){
+    document.querySelectorAll(".chip[data-cmd]").forEach(c => c.classList.add("flash"));
+    setTimeout(() => document.querySelectorAll(".chip").forEach(c => c.classList.remove("flash")), 3000);
+    addLog("sys","Protocols: morning briefing · end of day report · remind me to … · set alert in 10 minutes · set alarm for 7 am · add task … · add deadline … friday · crypto prices · convert 250 pounds to naira · exchange rates · crime report · uk visa waiting times · media play/pause · battery · clipboard · site scanner · open word · open claude · open youtube · weather · news · london transport · volume · screenshot · shutdown");
+    return speak("Full protocol manifest, Moses. I deliver your morning briefing and end of day report, hold reminders and tasks, track deadlines with a countdown radar, report crypto prices and exchange rates, run PC automation checks, manage your shopping list and diary, and open anything on the web. Name it, and consider it done.");
+  }
+
+  /* — fallback — */
+  addLog("warn", `No protocol matched for "${raw}".`);
+  speak("I do not have a protocol for that yet, sir. Say help to review my current directives.");
+}
+
+/* ═══════════════ BOOT SEQUENCE ═══════════════ */
+const BOOT_LINES = [
+  "Mounting neural core ............ OK",
+  "Calibrating microphone array ..... OK",
+  "Voice synthesis driver ........... OK",
+  "Linking weather satellite ........ OK",
+  "Subscribing global news feed ..... OK",
+  "Charging arc reactor ............. 100%",
+  "All directives loaded — welcome back, Moses."
+];
+let booted = false;
+function boot(){
+  let i = 0;
+  const step = () => {
+    if (i < BOOT_LINES.length){
+      const div = document.createElement("div");
+      div.textContent = "› " + BOOT_LINES[i];
+      $("bootLog").appendChild(div);
+      const pct = Math.round(((i+1)/BOOT_LINES.length)*100);
+      $("bootBar").style.width = pct + "%";
+      $("bootPct").textContent = "INITIALIZING " + pct + "%";
+      beep(600 + i*120, .05, "triangle", .06);
+      i++; setTimeout(step, 380 + Math.random()*260);
+    } else finishBoot();
+  };
+  ensureAudio(); step();
+}
+function finishBoot(){
+  if (booted) return; booted = true;
+  $("bootBar").style.width = "100%";
+  $("bootPct").textContent = "CORE ONLINE";
+  const b = $("boot");
+  b.style.transition = "opacity .8s ease"; b.style.opacity = "0";
+  setTimeout(() => b.remove(), 850);
+  const app = $("appWrap");
+  app.classList.add("boot-flash");
+  app.style.opacity = "1";
+  addLog("sys","J.A.R.V.I.S. MK I core online. Voice interface initialized.");
+  addLog("sys", SRI ? "Speech recognition module detected." : "Speech recognition NOT supported in this browser — console input active.");
+  if (!SRI){ $("micDot").className = "dot off"; $("micState").textContent = "OFFLINE"; }
+  if (location.protocol === "http:" && !/^(localhost|127\.)/.test(location.hostname))
+    addLog("warn","Microphone APIs require HTTPS or localhost — voice input may be blocked on this address.");
+  fetchWeather(false); fetchNews(false); fetchTfL(false); fetchCrypto(false); fetchFX(false); fetchPolice(false);
+  try{ if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); }catch(e){}
+  const bh = new Date().getHours();
+  const bb = $("briefBanner");
+  $("briefBannerTxt").textContent = bh < 12 ? "Morning briefing ready — deploy?" : bh < 17 ? "Daily briefing ready — deploy?" : "End-of-day report ready — deploy?";
+  bb.classList.remove("hidden");
+  lucide.createIcons();
+  setTimeout(() => speak("Systems online. Good to see you, sir. How can I assist?"), 900);
+}
+
+/* ═══════════════ WIRING ═══════════════ */
+document.addEventListener("DOMContentLoaded", () => {
+  lucide.createIcons();
+  initStars(); loop();
+
+  $("orbBtn").addEventListener("click", () => {
+    if (state.mode){
+      stopListening(); chirpLo(); addLog("sys","Listening halted.");
+      if (state.wake) startListening("wake", true); // hand back to the wake-word sentry
+    }
+    else {
+      state.convo = true; state.noSpeech = 0;
+      addLog("sys","Conversation mode engaged — Jarvis keeps listening after each reply. Tap the core or say “that's all” to stop.");
+      startListening("ptt");
+    }
+  });
+  $("powerBtn").addEventListener("click", shutdown);
+  $("reboot").addEventListener("click", () => location.reload());
+
+  $("voiceToggle").addEventListener("click", function(){
+    state.voiceOn = !state.voiceOn;
+    this.setAttribute("aria-checked", String(state.voiceOn));
+    if (!state.voiceOn && TTS) speechSynthesis.cancel();
+    addLog("sys", "Voice synthesis " + (state.voiceOn ? "enabled." : "muted."));
+  });
+  $("wakeToggle").addEventListener("click", function(){
+    state.wake = !state.wake;
+    this.setAttribute("aria-checked", String(state.wake));
+    if (state.wake){ startListening("wake"); addLog("sys","Wake-word protocol armed — say “Hey Jarvis”."); }
+    else { stopListening(); addLog("sys","Wake-word protocol disarmed."); }
+  });
+
+  document.querySelectorAll("[data-vol]").forEach(b =>
+    b.addEventListener("click", () => setVol(state.vol + (+b.dataset.vol))));
+  $("muteBtn").addEventListener("click", () => { state.muted = !state.muted; updateMuteBtn(); addLog("sys", state.muted ? "Audio muted." : "Audio unmuted."); beep(720,.07); });
+
+  document.querySelectorAll(".chip[data-cmd]").forEach(c =>
+    c.addEventListener("click", () => {
+      const cmd = c.dataset.cmd;
+      ensureAudio();
+      if (cmd === "__search"){ const i = $("cmdInput"); i.value = "search for "; i.focus(); return; }
+      addLog("user", cmd);
+      processCommand(cmd);
+    }));
+
+  $("cmdForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("cmdInput").value.trim();
+    if (!v) return;
+    $("cmdInput").value = "";
+    addLog("user", v);
+    ensureAudio();
+    processCommand(v);
+  });
+
+  $("wxRefresh").addEventListener("click", () => fetchWeather(true));
+  $("newsRefresh").addEventListener("click", () => fetchNews(true));
+  $("tflRefresh").addEventListener("click", () => fetchTfL(true));
+  $("cryptoRefresh").addEventListener("click", () => fetchCrypto(true));
+  $("fxRefresh").addEventListener("click", () => fetchFX(true));
+  $("policeRefresh").addEventListener("click", () => fetchPolice(true));
+
+  /* alert matrix */
+  loadAlerts();
+  setInterval(tickAlerts, 1000);
+  $("alertForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const t = $("alertTime").value.trim(); if (!t) return;
+    const lbl = $("alertLabelIn").value.trim();
+    $("alertTime").value = ""; $("alertLabelIn").value = "";
+    ensureAudio();
+    let phrase = "set alert " + t;
+    if (lbl) phrase += " to " + lbl;
+    addLog("user", phrase);
+    setAlert(phrase);
+  });
+  $("alertList").addEventListener("click", e => {
+    const del = e.target.closest("[data-aldel]");
+    if (del){
+      const hit = timers.find(t => t.id === +del.dataset.aldel);
+      if (hit){ clearTimeout(hit.handle); timers = timers.filter(t => t.id !== hit.id); saveAlerts(); beep(500, .07); addLog("sys", `Alert disarmed — "${hit.label}".`); }
+    }
+  });
+  $("micTest").addEventListener("click", () => { ensureAudio(); runMicTest(); });
+
+  /* reminders panel */
+  renderRems();
+  $("remForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("remInput").value.trim(); if (!v) return;
+    $("remInput").value = ""; ensureAudio();
+    addLog("user", "remind me to " + v);
+    addReminder("remind me to " + v);
+  });
+  $("remList").addEventListener("click", e => {
+    const del = e.target.closest("[data-rdel]");
+    if (del){ rems = rems.filter(r => r.id !== +del.dataset.rdel); saveRems(); beep(500, .07); addLog("sys","Reminder dismissed."); }
+  });
+
+  /* tasks panel */
+  renderTasks();
+  $("taskForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("taskInput").value.trim(); if (!v) return;
+    const p = $("taskPrio").value;
+    $("taskInput").value = ""; ensureAudio();
+    addLog("user", "add task " + p + " " + v);
+    addTask("add task " + p + " " + v);
+  });
+  $("taskList").addEventListener("click", e => {
+    const chk = e.target.closest("[data-tchk]"), del = e.target.closest("[data-tdel]");
+    if (chk){ const t = tasks.find(x => x.id === +chk.dataset.tchk); if (t){ t.done = !t.done; saveTasks(); beep(t.done ? 1400 : 900, .06); } }
+    if (del){ tasks = tasks.filter(x => x.id !== +del.dataset.tdel); saveTasks(); beep(500, .07); addLog("sys","Task removed from board."); }
+  });
+
+  /* deadlines panel */
+  renderDls();
+  $("dlForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const t = $("dlTitle").value.trim(), d = $("dlDate").value;
+    if (!t || !d){ addLog("warn","Deadline radar requires a deliverable and a date."); return; }
+    dls.push({ id: Date.now(), title: t.charAt(0).toUpperCase() + t.slice(1), due: new Date(d + "T00:00:00").toISOString() });
+    saveDls(); $("dlTitle").value = ""; $("dlDate").value = "";
+    ensureAudio(); affirm();
+    addLog("sys", `Deadline locked — "${t}".`);
+  });
+  $("dlList").addEventListener("click", e => {
+    const del = e.target.closest("[data-ddel]");
+    if (del){ dls = dls.filter(x => x.id !== +del.dataset.ddel); saveDls(); beep(500, .07); addLog("sys","Deadline removed from radar."); }
+  });
+
+  /* pc automation panel */
+  $("autoMedia").addEventListener("click", () => { ensureAudio(); addLog("user","media play pause"); autoMedia(); });
+  $("autoHosts").addEventListener("click", () => { ensureAudio(); addLog("user","open host apps"); autoHosts(); });
+  $("autoScanner").addEventListener("click", () => { ensureAudio(); addLog("user","site scanner"); autoScanner(); });
+  $("autoBattery").addEventListener("click", () => { ensureAudio(); addLog("user","battery check"); autoBattery(); });
+  $("autoClip").addEventListener("click", () => { ensureAudio(); addLog("user","clipboard read"); autoClipboard(); });
+  $("autoPing").addEventListener("click", () => { ensureAudio(); addLog("user","network latency test"); autoPing(); });
+
+  /* briefing banner */
+  $("briefBanner").addEventListener("click", () => {
+    $("briefBanner").classList.add("hidden");
+    ensureAudio();
+    const h = new Date().getHours();
+    addLog("user", h < 12 ? "morning briefing" : h < 17 ? "daily briefing" : "end of day report");
+    h < 17 ? morningBriefing() : endOfDayReport();
+  });
+
+  /* shopping panel */
+  renderShopping();
+  $("shopForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("shopInput").value.trim(); if (!v) return;
+    $("shopInput").value = "";
+    addLog("user", "add " + v + " to shopping list");
+    ensureAudio(); addShopping(splitList(v));
+  });
+  $("shopList").addEventListener("click", e => {
+    const chk = e.target.closest("[data-schk]"), del = e.target.closest("[data-sdel]");
+    if (chk){ const it = shopping[+chk.dataset.schk]; it.done = !it.done; saveShopping(); beep(it.done ? 1400 : 900, .06); }
+    if (del){ const it = shopping[+del.dataset.sdel]; shopping.splice(+del.dataset.sdel, 1); saveShopping(); beep(500, .07); addLog("sys", `Removed "${it.name}" from shopping inventory.`); }
+  });
+  $("shopClear").addEventListener("click", () => { ensureAudio(); clearShopping(); addLog("sys","Shopping inventory wiped."); });
+
+  /* appointments panel */
+  renderAppts();
+  $("apptForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const t = $("apptTitle").value.trim(), w = $("apptWhen").value;
+    if (!t || !w){ addLog("warn","Diary entry requires both a title and a date/time."); return; }
+    appts.push({ id: Date.now(), title: t, when: new Date(w).toISOString() });
+    saveAppts(); $("apptTitle").value = ""; $("apptWhen").value = "";
+    ensureAudio(); beep(1200, .08);
+    addLog("sys", `Diary entry committed — "${t}".`);
+    speak(`Noted, Moses. ${t}, on ${fmtWhen(new Date(w))}.`);
+  });
+  $("apptList").addEventListener("click", e => {
+    const del = e.target.closest("[data-adel]");
+    if (del){ appts = appts.filter(a => a.id !== +del.dataset.adel); saveAppts(); beep(500, .07); addLog("sys","Appointment cancelled."); }
+  });
+  $("cityInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.value.trim()){
+      state.city = e.target.value.trim(); state.lat = state.lon = null;
+      e.target.value = "";
+      addLog("sys", "Weather target locked: " + state.city);
+      fetchWeather(true);
+    }
+  });
+
+  $("docClose").addEventListener("click", () => { clearInterval(state.typer); $("docOverlay").classList.add("hidden"); $("docOverlay").classList.remove("flex"); });
+
+  document.addEventListener("keydown", e => {
+    if (["INPUT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+    if (e.key.toLowerCase() === "l"){ state.mode ? stopListening() : startListening("ptt"); }
+    if (e.key === "Enter"){ e.preventDefault(); $("cmdInput").focus(); }
+  });
+
+  $("skipBoot").addEventListener("click", finishBoot);
+  document.addEventListener("pointerdown", ensureAudio, { once:true });
+
+  boot();
+});
+</script>
+</body>
+</html>
